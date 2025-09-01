@@ -1,0 +1,100 @@
+ROLE  
+You are running inside Cursor with terminal + filesystem access.  
+Your job: prepare this laptop for MCP-based development.  
+- Read project config from `.env` (or create it from `.env.example`).  
+- Ensure Context7, SQLite, OpenAPI, and Playwright MCPs are installed.  
+- Start/verify servers.  
+- Print a clear ✅/❌ summary and FIX steps if anything fails.  
+
+PROJECT CONTEXT  
+- `.env` keys used (defaults in parentheses):  
+  - `SQLITE_DB` (./dev.db)  
+  - `OPENAPI_SPEC` (https://petstore3.swagger.io/api/v3/openapi.json)  
+  - `CONTEXT7_PORT` (8765), `SQLITE_PORT` (7772), `OPENAPI_PORT` (7773)  
+- If `.env` is missing: copy `.env.example` → `.env`.  
+
+REQUIRED TOOLS  
+- Node + npm (for npx)  
+- Context7 MCP → `context7-mcp`  
+- SQLite MCP → `mcp-sqlite`  
+- OpenAPI MCP → `mcp-openapi-server`  
+- Playwright MCP (stdio) → `npx @playwright/mcp@latest`  
+- Playwright runtime (CLI + browsers) → `npx playwright install`  
+
+STEPS  
+
+1. **Prepare environment**  
+```bash
+[ -f .env ] || cp .env.example .env
+export $(grep -v '^#' .env | xargs)
+: "${CONTEXT7_PORT:=8765}" "${SQLITE_PORT:=7772}" "${OPENAPI_PORT:=7773}"
+: "${SQLITE_DB:=./dev.db}" "${OPENAPI_SPEC:=https://petstore3.swagger.io/api/v3/openapi.json}"
+Ensure Context7 config
+
+bash
+Copy
+Edit
+mkdir -p $HOME/.context7 .context
+if [ ! -f $HOME/.context7/context7.toml ]; then
+  cat > $HOME/.context7/context7.toml <<'EOF'
+[server]
+allow_roots = ["{cwd}"]
+[[calls]]
+match = "(create|update|refactor|fix).*(code|tests|pytest|jest|playwright|lint|build)"
+resources = ["file://{cwd}/.context/claude.md"]
+EOF
+fi
+[ -f .context/claude.md ] || echo "Output unified diffs only. Goal → Approach → Tests. Pin new deps with reason." > .context/claude.md
+Install MCPs if missing
+
+bash
+Copy
+Edit
+command -v context7-mcp >/dev/null || echo "⚠️  context7-mcp missing"
+command -v mcp-sqlite >/dev/null || {
+  git clone https://github.com/jparkerweb/mcp-sqlite ~/.mcp/mcp-sqlite || true
+  cd ~/.mcp/mcp-sqlite && npm install && npm link
+}
+command -v mcp-openapi-server >/dev/null || {
+  git clone https://github.com/ivo-toby/mcp-openapi-server ~/.mcp/mcp-openapi-server || true
+  cd ~/.mcp/mcp-openapi-server && npm install && npm link
+}
+npx -y @playwright/mcp@latest --help >/dev/null || echo "⚠️  Playwright MCP wrapper issue"
+npx -y playwright install >/dev/null
+Start servers (background, logs in /tmp)
+
+bash
+Copy
+Edit
+pgrep -f "context7-mcp .*--port $CONTEXT7_PORT" >/dev/null || context7-mcp --config "$HOME/.context7/context7.toml" --port "$CONTEXT7_PORT" --cwd "$PWD" >/tmp/context7.log 2>&1 &
+pgrep -f "mcp-sqlite .*--port $SQLITE_PORT" >/dev/null || mcp-sqlite --db "$SQLITE_DB" --port "$SQLITE_PORT" >/tmp/sqlite-mcp.log 2>&1 &
+pgrep -f "mcp-openapi-server .*--port $OPENAPI_PORT" >/dev/null || mcp-openapi-server --spec "$OPENAPI_SPEC" --port "$OPENAPI_PORT" >/tmp/openapi-mcp.log 2>&1 &
+Cursor MCP config snippet
+
+json
+Copy
+Edit
+{
+  "mcpServers": {
+    "context7":  { "type": "http",  "url": "http://127.0.0.1:${CONTEXT7_PORT}" },
+    "playwright":{ "type": "stdio", "command": "npx", "args": ["@playwright/mcp@latest"] },
+    "sqlite":    { "type": "http",  "url": "http://127.0.0.1:${SQLITE_PORT}" },
+    "openapi":   { "type": "http",  "url": "http://127.0.0.1:${OPENAPI_PORT}" }
+  }
+}
+Health check
+
+bash
+Copy
+Edit
+@sqlite query: SELECT 1;
+@openapi list_operations
+@playwright version
+# Trigger Context7 with a trivial refactor to confirm .context/claude.md is injected
+OUTPUT
+
+Checklist: Installed / Installed now / Missing.
+
+Health results for each MCP.
+
+✅ “All MCPs installed and healthy” OR ❌ with FIX instructions.

@@ -1,0 +1,139 @@
+ROLE
+You are running inside Cursor with terminal + filesystem access.  
+Your job: prepare this project for MCP-based development:
+- Read project config from `.env` (or create it from `.env.example`).
+- Ensure MCP tools are installed.
+- Ensure minimal Context7 rules exist.
+- Start/verify MCPs (Context7, SQLite, OpenAPI, Playwright).
+- Print a clear status summary and FIX steps if anything fails.
+
+PROJECT CONTEXT (read/derive)
+- `.env` keys used (fallback defaults in parentheses):
+  - SQLITE_DB (./dev.db)
+  - OPENAPI_SPEC (https://petstore3.swagger.io/api/v3/openapi.json)
+  - CONTEXT7_PORT (8765), SQLITE_PORT (7772), OPENAPI_PORT (7773)
+- If `.env` is missing: copy `.env.example` → `.env` and proceed.
+
+REQUIRED TOOLS
+- Node + npm (for npx)
+- MCP servers:
+  - Context7 MCP → `context7-mcp`
+  - SQLite MCP → `mcp-sqlite`
+  - OpenAPI MCP → `mcp-openapi-server`
+  - Playwright MCP (stdio) → `npx @playwright/mcp@latest`
+  - Playwright runtime (CLI + browsers) → `npx playwright install`
+
+STEPS
+
+0) PREP .env  
+- If `.env` does not exist, run: `cp .env.example .env`  
+- Parse `.env` and export variables; use defaults if missing.
+
+1) ENSURE CONTEXT7 CONFIG (one-time)  
+- Ensure `$HOME/.context7/context7.toml` exists; if not, create with:  
+  ```toml
+  [server]
+  allow_roots = ["{cwd}"]
+  [[calls]]
+  match = "(create|update|refactor|fix).*(code|tests|pytest|jest|playwright|lint|build)"
+  resources = ["file://{cwd}/.context/claude.md"]
+Ensure .context/claude.md exists in this repo; if not, create a minimal one:
+
+pgsql
+Copy
+Edit
+Output unified diffs only. Goal → Approach → Tests. Pin new deps with reason.
+CHECK INSTALLATIONS (print status lines)
+
+node -v && npm -v (or print "missing: node/npm")
+
+command -v context7-mcp || echo "missing: context7-mcp"
+
+npx -y @playwright/mcp@latest --help >/dev/null 2>&1 || echo "missing: @playwright/mcp"
+
+npx -y playwright --version >/dev/null 2>&1 || echo "missing: playwright-cli"
+
+command -v mcp-sqlite || echo "missing: mcp-sqlite"
+
+command -v mcp-openapi-server|| echo "missing: mcp-openapi-server"
+
+INSTALL IF MISSING (idempotent; show commands you run)
+
+SQLite MCP:
+
+bash
+Copy
+Edit
+git clone https://github.com/jparkerweb/mcp-sqlite ~/.mcp/mcp-sqlite || true
+cd ~/.mcp/mcp-sqlite && npm install && npm link
+OpenAPI MCP:
+
+bash
+Copy
+Edit
+git clone https://github.com/ivo-toby/mcp-openapi-server ~/.mcp/mcp-openapi-server || true
+cd ~/.mcp/mcp-openapi-server && npm install && npm link
+Playwright runtime + browsers:
+
+bash
+Copy
+Edit
+npx -y playwright install   # use --with-deps on Linux if needed
+START SERVERS (use .env ports; background; log to /tmp)
+
+Context7:
+
+bash
+Copy
+Edit
+pgrep -f "context7-mcp .*--port $CONTEXT7_PORT" >/dev/null || \
+context7-mcp --config "$HOME/.context7/context7.toml" --port "$CONTEXT7_PORT" --cwd "$PWD" >/tmp/context7.log 2>&1 &
+SQLite MCP:
+
+bash
+Copy
+Edit
+[ -f "$SQLITE_DB" ] || sqlite3 "$SQLITE_DB" "VACUUM;" || true
+pgrep -f "mcp-sqlite .*--port $SQLITE_PORT" >/dev/null || \
+mcp-sqlite --db "$SQLITE_DB" --port "$SQLITE_PORT" >/tmp/sqlite-mcp.log 2>&1 &
+OpenAPI MCP:
+
+bash
+Copy
+Edit
+pgrep -f "mcp-openapi-server .*--port $OPENAPI_PORT" >/dev/null || \
+mcp-openapi-server --spec "$OPENAPI_SPEC" --port "$OPENAPI_PORT" >/tmp/openapi-mcp.log 2>&1 &
+REGISTER MCPs IN CURSOR (print JSON to paste if needed)
+
+json
+Copy
+Edit
+{
+  "mcpServers": {
+    "context7":  { "type": "http",  "url": "http://127.0.0.1:${CONTEXT7_PORT}" },
+    "playwright":{ "type": "stdio", "command": "npx", "args": ["@playwright/mcp@latest"] },
+    "sqlite":    { "type": "http",  "url": "http://127.0.0.1:${SQLITE_PORT}" },
+    "openapi":   { "type": "http",  "url": "http://127.0.0.1:${OPENAPI_PORT}" }
+  }
+}
+HEALTH CHECK (stop on failure; print FIX with exact command + last 20 log lines)
+
+@sqlite query → SELECT 1;
+
+@openapi list_operations
+
+@playwright version
+
+Trigger Context7 by asking for a trivial refactor (expect .context/claude.md attached).
+
+OUTPUT
+
+A compact checklist: Installed / Installed now / Missing.
+
+Health results per MCP.
+
+Final line:
+
+All MCPs installed and healthy ✅
+
+or Setup incomplete — see FIX instructions ❌

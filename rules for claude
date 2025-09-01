@@ -1,0 +1,50 @@
+Rules
+
+# Claude.md (project rules)
+
+## Mode & Context Discipline
+- Use **Plan mode** (2× Shift+Tab) for research/roadmaps before touching files.
+- After long loops, run `/clear` to start with a fresh context.
+- Use `/resume` if a session was interrupted.
+
+## Version Control Rule (Checkpoint alternative)
+- After finishing a task, **stage, commit, and describe** the full scope.
+- Use clear, descriptive commit messages.
+- Never leave the repo dirty between major steps.
+
+## IDE Diagnostics Rule
+- After each task completes, run IDE diagnostics in one go:
+  - type-check, linter, unit/integration tests, and build.
+- Summarize results; if anything fails, fix it before proceeding.
+
+## Documentation Rule (Context7 MCP)
+- When the user requests docs or when APIs/versions are ambiguous:
+  - Use the documentation MCP (e.g., Context7) to fetch the *current* usage,
+  - Align code to the latest version, not cached patterns.
+
+## Dependencies Rule
+- Before installing anything, **inspect current deps** to avoid duplicates.
+- If a new package is proposed, justify it and prefer minimal footprint.
+
+## Project Structure Rule
+- Reflect existing structure; don’t duplicate modules that already exist.
+- If structure is unclear, ask to generate a quick map (tree) and index.
+
+## Self-Improve Rule
+- When a repeated bug or pattern is observed, **add/append a rule to this file**.
+- Keep rules short, precise, and colocate them near relevant dirs if needed.
+
+## Nested Claude.md
+- It’s allowed to nest claude.md files in subdirectories for localized rules.
+
+## Referencing Rules
+- You may reference other rule files (e.g., IDE rules, Cursor rules) by path here to avoid duplication.
+
+## Sub-Agents, Thinking Budget & Loops
+- For complex tasks: “Think.” → “Think harder.” → “Ultraink.” to allocate more internal planning.
+- Use sub-agents where beneficial; show them as terminal tasks.
+- For fix cycles: run in a loop (build → fix → repeat) until clean; then `/clear`.
+
+## Git Discipline (practical steps)
+- One logical commit per finished subtask.
+- Keep diffs small by running formatters before commits.
