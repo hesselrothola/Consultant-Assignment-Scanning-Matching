@@ -5,6 +5,7 @@ An intelligent system for ingesting Swedish consulting assignments and matching 
 ## Features
 
 - **Multi-source ingestion**: RSS feeds, HTML parsing, API integration
+- **Web Scraping**: ✅ Brainville scraper implemented with rate limiting
 - **Smart matching**: Embeddings-based similarity with weighted scoring
 - **PostgreSQL + pgvector**: Efficient vector similarity search
 - **FastAPI backend**: Modern async Python API
@@ -72,6 +73,23 @@ python scripts/dev_seed.py
 - Database: localhost:5433 (user: postgres, pass: postgres)
 
 ## API Endpoints
+
+### Web Scraping
+
+**Scrape Brainville**
+```bash
+curl -X POST http://localhost:8001/scrape/brainville
+```
+
+**Scrape All Enabled Sources**
+```bash
+curl -X POST http://localhost:8001/scrape/all
+```
+
+**Check Scraper Status**
+```bash
+curl http://localhost:8001/scrape/status
+```
 
 ### Job Management
 
@@ -263,7 +281,12 @@ uvicorn app.main:app --reload
 ### Testing
 
 ```bash
-# Run tests
+# Test web scrapers
+python scripts/test_scraper.py --scraper connectivity  # Test site connectivity
+python scripts/test_scraper.py --scraper brainville    # Test Brainville scraper
+python scripts/test_scraper.py --scraper all          # Test all scrapers
+
+# Run tests (when implemented)
 pytest tests/
 
 # With coverage
@@ -343,24 +366,30 @@ docker-compose logs -f postgres
 
 ## Implementation Status
 
-### Current Phase: Foundation Complete ✅
-The core system architecture is in place with database, API, embeddings, and matching algorithms implemented.
+### ✅ Completed Components
+- Core database schema with PostgreSQL + pgvector
+- FastAPI backend with all basic endpoints
+- Dual embedding service (OpenAI/local)
+- Weighted matching algorithm
+- **Brainville web scraper with rate limiting** *(NEW)*
+- Scraper API endpoints and testing tools *(NEW)*
+- Configuration system for all settings *(NEW)*
 
-### Next Steps: Production Features 🚧
+### 🚧 In Progress
 See [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) for the detailed roadmap:
 
-1. **Data Ingestion**: Implement Brainville, Cinode, LinkedIn scrapers
-2. **Automation**: Add scheduling and daily scanning
+1. **Data Ingestion**: ✅ Brainville | ⏳ Cinode, LinkedIn scrapers
+2. **Automation**: Add scheduling and daily scanning at 07:00
 3. **Enhanced Matching**: Improve analytics and scoring
 4. **User Interface**: Admin dashboard and filters
 5. **Production**: Monitoring, security, and hardening
 
-Priority items to implement:
-- Web scrapers for Swedish consulting portals
-- Daily automated scanning at 07:00 CET
-- Slack/Teams webhook delivery
-- Admin dashboard for assignment filtering
-- Company prospect scoring
+### 📋 Next Priority Tasks
+- Implement APScheduler for automated daily scanning
+- Add Cinode marketplace scraper
+- Create Slack/Teams notification service
+- Implement LinkedIn scraper (with authentication handling)
+- Add admin dashboard for filtering assignments
 
 ## License
 

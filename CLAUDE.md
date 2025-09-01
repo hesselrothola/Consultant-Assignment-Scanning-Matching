@@ -40,6 +40,7 @@ The system uses a modular FastAPI backend with PostgreSQL 16 + pgvector for vect
 - **EmbeddingService** (`app/embeddings.py`): Dual-mode embeddings supporting OpenAI text-embedding-3-large or local sentence-transformers
 - **MatchingService** (`app/matching.py`): Weighted multi-factor matching with cosine similarity (45%), skills (25%), role (15%), language (10%), geography (5%)
 - **ReportingService** (`app/reports.py`): Generates daily/weekly reports in JSON, Slack, and Teams formats
+- **Web Scrapers** (`app/scrapers/`): Modular scraping system with base class, currently implements Brainville with rate limiting
 
 **Data Flow:**
 1. Jobs ingested via RSS/HTML/API → normalized company/broker creation → job storage
@@ -47,6 +48,18 @@ The system uses a modular FastAPI backend with PostgreSQL 16 + pgvector for vect
 3. Matching runs vector similarity search → applies weighted scoring → stores results with detailed reasoning
 
 ## Key Commands
+
+### Testing Scrapers
+```bash
+# Test connectivity to all scraping targets
+python scripts/test_scraper.py --scraper connectivity
+
+# Test Brainville scraper (saves JSON output)
+python scripts/test_scraper.py --scraper brainville
+
+# Test all scrapers
+python scripts/test_scraper.py --scraper all --verbose
+```
 
 ### Development Setup
 ```bash
@@ -149,10 +162,19 @@ All endpoints in `app/main.py` follow consistent patterns:
 
 ### Ingestion Sources
 
-Modular ingestion system in `app/ingest/`:
+Multiple ingestion systems for different data sources:
+
+**Web Scrapers** (`app/scrapers/`):
+- **BaseScraper**: Abstract base class with rate limiting, retry logic, skill extraction
+- **BrainvilleScraper**: Complete implementation for Brainville consulting portal
+- Includes Swedish-specific parsing for companies, locations, dates
+
+**Feed Ingestion** (`app/ingest/`):
 - **BaseIngester**: Abstract class defining interface
 - **RSSIngester**: Feedparser-based RSS/Atom feed processing
-- Custom parsers in `app/parse/` for HTML extraction using selectolax
+
+**HTML Parsing** (`app/parse/`):
+- Custom parsers for HTML extraction using selectolax
 
 ## Important Implementation Notes
 
@@ -200,9 +222,15 @@ See `docs/IMPLEMENTATION_PLAN.md` for the detailed roadmap covering:
 - **Phase 4**: User interface & notifications
 - **Phase 5**: Production readiness & monitoring
 
-Key missing components to implement:
-- Web scrapers for Swedish consulting portals
-- Automated daily scanning at 07:00
+Latest Progress:
+- ✅ Brainville web scraper fully implemented
+- ✅ Base scraper infrastructure with rate limiting
+- ✅ Scraper API endpoints and testing tools
+- ✅ Configuration system with Swedish settings
+
+Next priorities to implement:
+- Automated daily scanning at 07:00 (APScheduler)
+- Cinode and LinkedIn scrapers
 - Slack/Teams notification delivery
 - Admin dashboard for filtering and management
 - Trend analysis and company prospect scoring
