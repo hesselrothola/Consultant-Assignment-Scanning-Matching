@@ -341,6 +341,27 @@ docker-compose logs -f postgres
    - Sentence-transformers models can be memory intensive
    - Use OpenAI embeddings or reduce batch sizes
 
+## Implementation Status
+
+### Current Phase: Foundation Complete ✅
+The core system architecture is in place with database, API, embeddings, and matching algorithms implemented.
+
+### Next Steps: Production Features 🚧
+See [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) for the detailed roadmap:
+
+1. **Data Ingestion**: Implement Brainville, Cinode, LinkedIn scrapers
+2. **Automation**: Add scheduling and daily scanning
+3. **Enhanced Matching**: Improve analytics and scoring
+4. **User Interface**: Admin dashboard and filters
+5. **Production**: Monitoring, security, and hardening
+
+Priority items to implement:
+- Web scrapers for Swedish consulting portals
+- Daily automated scanning at 07:00 CET
+- Slack/Teams webhook delivery
+- Admin dashboard for assignment filtering
+- Company prospect scoring
+
 ## License
 
 MIT

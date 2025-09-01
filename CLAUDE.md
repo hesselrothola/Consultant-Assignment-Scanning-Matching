@@ -190,3 +190,19 @@ Critical settings in .env:
 - Embedding failures logged but don't block job insertion
 - Matching continues even if individual match calculations fail
 - API endpoints return appropriate HTTP status codes with detail messages
+
+## Implementation Roadmap
+
+See `docs/IMPLEMENTATION_PLAN.md` for the detailed roadmap covering:
+- **Phase 1**: Data ingestion scrapers (Brainville, Cinode, LinkedIn)
+- **Phase 2**: Automation & scheduling with APScheduler
+- **Phase 3**: Enhanced matching & analytics
+- **Phase 4**: User interface & notifications
+- **Phase 5**: Production readiness & monitoring
+
+Key missing components to implement:
+- Web scrapers for Swedish consulting portals
+- Automated daily scanning at 07:00
+- Slack/Teams notification delivery
+- Admin dashboard for filtering and management
+- Trend analysis and company prospect scoring

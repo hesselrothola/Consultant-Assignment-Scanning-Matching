@@ -2,6 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import List, Optional, Dict, Any
 from uuid import UUID
+from datetime import datetime, timezone
 import logging
 
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
@@ -19,6 +20,8 @@ from app.matching import MatchingService
 from app.reports import ReportingService
 from app.parse.html_parser import GenericHTMLParser
 from app.ingest.rss_ingester import RSSIngester
+from app.scrapers import BrainvilleScraper
+from app.config import settings, SCRAPER_CONFIGS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -479,3 +482,197 @@ async def n8n_match_webhook(
     except Exception as e:
         logger.error(f"n8n match webhook error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Scraper endpoints
+@app.post("/scrape/brainville")
+async def scrape_brainville(
+    background_tasks: BackgroundTasks,
+    db: DatabaseRepository = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service),
+    max_pages: Optional[int] = None
+):
+    """Manually trigger Brainville scraping."""
+    if not SCRAPER_CONFIGS.get("brainville", {}).get("enabled"):
+        raise HTTPException(status_code=400, detail="Brainville scraper is disabled")
+    
+    try:
+        async with BrainvilleScraper() as scraper:
+            if max_pages:
+                scraper.max_pages = max_pages
+            
+            # Scrape jobs
+            jobs = await scraper.scrape()
+            
+            # Save jobs and create embeddings
+            saved_jobs = []
+            for job_in in jobs:
+                # Handle company
+                if job_in.company:
+                    company = await db.get_or_create_company(job_in.company)
+                    job_in.company_id = company.company_id
+                
+                # Handle broker
+                if job_in.broker:
+                    broker = await db.get_or_create_broker(job_in.broker)
+                    job_in.broker_id = broker.broker_id
+                
+                # Save job
+                saved_job = await db.upsert_job(job_in)
+                saved_jobs.append(saved_job)
+                
+                # Create embedding in background
+                async def create_job_embedding(job_id, job_data):
+                    try:
+                        job_text = embeddings.prepare_job_text(job_data)
+                        embedding = await embeddings.create_embedding(job_text)
+                        await db.store_job_embedding(job_id, embedding)
+                    except Exception as e:
+                        logger.error(f"Error creating embedding for job {job_id}: {e}")
+                
+                background_tasks.add_task(
+                    create_job_embedding,
+                    saved_job.job_id,
+                    job_in.dict()
+                )
+            
+            # Log ingestion
+            await db.log_ingestion(
+                source="brainville",
+                status="success",
+                found_count=len(jobs),
+                upserted_count=len(saved_jobs)
+            )
+            
+            return {
+                "status": "success",
+                "jobs_scraped": len(jobs),
+                "jobs_saved": len(saved_jobs),
+                "message": f"Successfully scraped {len(jobs)} jobs from Brainville"
+            }
+            
+    except Exception as e:
+        logger.error(f"Error scraping Brainville: {e}")
+        
+        # Log failed ingestion
+        await db.log_ingestion(
+            source="brainville",
+            status="failed",
+            error=str(e)
+        )
+        
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/scrape/status")
+async def get_scraper_status(
+    db: DatabaseRepository = Depends(get_db)
+):
+    """Get status of all scrapers and recent ingestion history."""
+    try:
+        # Get recent ingestion logs
+        recent_logs = await db.get_recent_ingestion_logs(limit=10)
+        
+        # Get scraper configurations
+        scraper_status = {}
+        for name, config in SCRAPER_CONFIGS.items():
+            scraper_status[name] = {
+                "enabled": config.get("enabled", False),
+                "base_url": config.get("base_url", ""),
+                "max_pages": config.get("max_pages", 10),
+                "rate_limit": config.get("rate_limit", 1.0)
+            }
+        
+        return {
+            "scrapers": scraper_status,
+            "recent_ingestions": recent_logs,
+            "scraping_enabled": settings.scraping_enabled
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting scraper status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/scrape/all")
+async def scrape_all_sources(
+    background_tasks: BackgroundTasks,
+    db: DatabaseRepository = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service)
+):
+    """Trigger scraping from all enabled sources."""
+    if not settings.scraping_enabled:
+        raise HTTPException(status_code=400, detail="Scraping is globally disabled")
+    
+    results = {}
+    
+    # Scrape Brainville if enabled
+    if SCRAPER_CONFIGS.get("brainville", {}).get("enabled"):
+        try:
+            async with BrainvilleScraper() as scraper:
+                jobs = await scraper.scrape()
+                
+                saved_count = 0
+                for job_in in jobs:
+                    try:
+                        # Handle company and broker
+                        if job_in.company:
+                            company = await db.get_or_create_company(job_in.company)
+                            job_in.company_id = company.company_id
+                        
+                        if job_in.broker:
+                            broker = await db.get_or_create_broker(job_in.broker)
+                            job_in.broker_id = broker.broker_id
+                        
+                        # Save job
+                        saved_job = await db.upsert_job(job_in)
+                        saved_count += 1
+                        
+                        # Create embedding in background
+                        async def create_embedding(job_id, job_data):
+                            try:
+                                text = embeddings.prepare_job_text(job_data)
+                                emb = await embeddings.create_embedding(text)
+                                await db.store_job_embedding(job_id, emb)
+                            except Exception as e:
+                                logger.error(f"Embedding error: {e}")
+                        
+                        background_tasks.add_task(create_embedding, saved_job.job_id, job_in.dict())
+                        
+                    except Exception as e:
+                        logger.error(f"Error saving job: {e}")
+                
+                results["brainville"] = {
+                    "status": "success",
+                    "scraped": len(jobs),
+                    "saved": saved_count
+                }
+                
+                await db.log_ingestion(
+                    source="brainville",
+                    status="success",
+                    found_count=len(jobs),
+                    upserted_count=saved_count
+                )
+                
+        except Exception as e:
+            logger.error(f"Brainville scraping failed: {e}")
+            results["brainville"] = {
+                "status": "failed",
+                "error": str(e)
+            }
+            await db.log_ingestion(
+                source="brainville",
+                status="failed",
+                error=str(e)
+            )
+    
+    # Add other scrapers here as they're implemented
+    # if SCRAPER_CONFIGS.get("cinode", {}).get("enabled"):
+    #     # Scrape Cinode...
+    
+    return {
+        "status": "completed",
+        "results": results,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }

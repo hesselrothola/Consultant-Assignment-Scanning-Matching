@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultant Assignment Matching System - README</title>
+    <style>
+        @media print {
+            body {{ margin: 0; }
+            .no-print {{ display: none; }
+        }}
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        
+        h3 {
+            color: #34495e;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        h4 {
+            color: #555;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            color: #d14;
+        }
+        
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 15px 0;
+            padding-left: 15px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        
+        table th {
+            background-color: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #2980b9;
+            font-weight: bold;
+        }
+        
+        table td {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+        }
+        
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        table tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+            color: #2980b9;
+        }
+        
+        strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .header-info {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .no-print {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 5px;
+        }
+        
+        @media screen {
+            body {
+                background-color: #f5f5f5;
+            }
+            
+            body > * {
+                background-color: white;
+                padding: 40px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                border-radius: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <strong>📄 PDF Generation:</strong> Use your browser's Print function (Cmd+P or Ctrl+P) and select "Save as PDF" to create a PDF version of this document.
+    </div>
+    
+    <div class="header-info">
+        <h1 style="border: none; margin: 0;">Consultant Assignment Matching System</h1>
+        <p style="margin: 10px 0 0 0;">AI-driven agent for the Swedish consulting market</p>
+    </div>
+    
+    <h1>Consultant Assignment Matching System</h1>
+<br>
+<p>An intelligent system for ingesting Swedish consulting assignments and matching them with consultants using embeddings and multi-factor scoring.</p>
+<br>
+<h2>Features</h2>
+<br>
+<li><strong>Multi-source ingestion</strong>: RSS feeds, HTML parsing, API integration</li>
+<li><strong>Smart matching</strong>: Embeddings-based similarity with weighted scoring</li>
+<li><strong>PostgreSQL + pgvector</strong>: Efficient vector similarity search</li>
+<li><strong>FastAPI backend</strong>: Modern async Python API</li>
+<li><strong>n8n integration</strong>: Ready-to-use webhook endpoints</li>
+<li><strong>Automated reporting</strong>: Daily/weekly reports for Slack/Teams</li>
+<br>
+<h2>Architecture</h2>
+<br>
+<pre>
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Sources   │────▶│   FastAPI   │────▶│ PostgreSQL  │
+│ RSS/HTML/API│     │   Backend   │     │  + pgvector │
+└─────────────┘     └─────────────┘     └─────────────┘
+                           │
+                    ┌──────┴──────┐
+                    │  Embeddings │
+                    │   Service   │
+                    └─────────────┘
+</pre>
+<br>
+<h2>Quick Start</h2>
+<br>
+<h3>Prerequisites</h3>
+<br>
+<li>Docker &amp; Docker Compose</li>
+<li>Python 3.11+ (for local development)</li>
+<li>OpenAI API key (for OpenAI embeddings) or use local embeddings</li>
+<br>
+<h3>Setup</h3>
+<br>
+<p>1. Clone the repository:</p>
+<pre>
+git clone &lt;repo-url&gt;
+cd consultant-assignment-matching
+</pre>
+<br>
+<p>2. Set environment variables:</p>
+<pre>
+# Create .env file
+cat &gt; .env &lt;&lt; EOF
+EMBEDDING_BACKEND=openai  # or &quot;local&quot; for sentence-transformers
+OPENAI_API_KEY=your-api-key-here  # if using OpenAI
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/consultant_matching
+EOF
+</pre>
+<br>
+<p>3. Start services with Docker:</p>
+<pre>
+docker-compose up -d
+</pre>
+<br>
+<p>4. Seed the database with sample data:</p>
+<pre>
+# With Docker
+docker-compose exec api python scripts/dev_seed.py
+
+# Or locally
+pip install -r requirements.txt
+python scripts/dev_seed.py
+</pre>
+<br>
+<p>5. Access the API:</p>
+<li>API: http://localhost:8001</li>
+<li>Interactive docs: http://localhost:8001/docs</li>
+<li>Database: localhost:5433 (user: postgres, pass: postgres)</li>
+<br>
+<h2>API Endpoints</h2>
+<br>
+<h3>Job Management</h3>
+<br>
+<p><strong>Upsert Single Job</strong></p>
+<pre>
+curl -X POST http://localhost:8001/jobs/upsert \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+    &quot;source&quot;: &quot;manual&quot;,
+    &quot;title&quot;: &quot;Senior Python Developer&quot;,
+    &quot;company&quot;: &quot;TechCorp AB&quot;,
+    &quot;location&quot;: &quot;Stockholm&quot;,
+    &quot;skills&quot;: [&quot;Python&quot;, &quot;FastAPI&quot;, &quot;PostgreSQL&quot;],
+    &quot;language_requirements&quot;: [&quot;Swedish&quot;, &quot;English&quot;]
+  }&#x27;
+</pre>
+<br>
+<p><strong>Bulk Upsert Jobs</strong></p>
+<pre>
+curl -X POST http://localhost:8001/jobs/bulk \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+    &quot;jobs&quot;: [
+      {&quot;source&quot;: &quot;rss&quot;, &quot;title&quot;: &quot;DevOps Engineer&quot;, ...},
+      {&quot;source&quot;: &quot;rss&quot;, &quot;title&quot;: &quot;Frontend Developer&quot;, ...}
+    ]
+  }&#x27;
+</pre>
+<br>
+<h3>Consultant Management</h3>
+<br>
+<p><strong>Upsert Consultant</strong></p>
+<pre>
+curl -X POST http://localhost:8001/consultants/upsert \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+    &quot;name&quot;: &quot;Anna Andersson&quot;,
+    &quot;email&quot;: &quot;anna@example.com&quot;,
+    &quot;title&quot;: &quot;Senior Developer&quot;,
+    &quot;skills&quot;: [&quot;Python&quot;, &quot;React&quot;, &quot;PostgreSQL&quot;],
+    &quot;languages&quot;: [&quot;Swedish&quot;, &quot;English&quot;],
+    &quot;location&quot;: &quot;Stockholm&quot;
+  }&#x27;
+</pre>
+<br>
+<h3>Matching</h3>
+<br>
+<p><strong>Run Matching Algorithm</strong></p>
+<pre>
+curl -X POST http://localhost:8001/match/run \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+    &quot;min_score&quot;: 0.6,
+    &quot;max_results&quot;: 5
+  }&#x27;
+</pre>
+<br>
+<h3>Reports</h3>
+<br>
+<p><strong>Get Daily Report</strong></p>
+<pre>
+# JSON format
+curl http://localhost:8001/reports/daily
+
+# Slack format
+curl http://localhost:8001/reports/daily/slack
+
+# Teams format
+curl http://localhost:8001/reports/weekly/teams
+</pre>
+<br>
+<h3>Ingestion</h3>
+<br>
+<p><strong>Ingest from RSS</strong></p>
+<pre>
+curl -X POST http://localhost:8001/ingest/rss \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+    &quot;feed_url&quot;: &quot;https://example.com/jobs.rss&quot;,
+    &quot;source_name&quot;: &quot;example_rss&quot;
+  }&#x27;
+</pre>
+<br>
+<p><strong>Parse HTML</strong></p>
+<pre>
+curl -X POST http://localhost:8001/parse/custom_source \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{
+    &quot;html_content&quot;: &quot;&lt;html&gt;...&lt;/html&gt;&quot;
+  }&#x27;
+</pre>
+<br>
+<h2>n8n Integration</h2>
+<br>
+<h3>Webhook Endpoints</h3>
+<br>
+<p>The system provides dedicated n8n webhook endpoints for easy integration:</p>
+<br>
+<p><strong>Job Ingestion Webhook</strong></p>
+<pre>
+POST http://localhost:8001/n8n/ingest
+{
+  &quot;source&quot;: &quot;n8n_workflow&quot;,
+  &quot;jobs&quot;: [
+    {
+      &quot;title&quot;: &quot;Python Developer&quot;,
+      &quot;company&quot;: &quot;Tech AB&quot;,
+      &quot;location&quot;: &quot;Stockholm&quot;,
+      &quot;description&quot;: &quot;...&quot;,
+      &quot;skills&quot;: [&quot;Python&quot;, &quot;Django&quot;]
+    }
+  ]
+}
+</pre>
+<br>
+<p><strong>Matching Webhook</strong></p>
+<pre>
+POST http://localhost:8001/n8n/match
+{
+  &quot;job_ids&quot;: [&quot;uuid1&quot;, &quot;uuid2&quot;],
+  &quot;min_score&quot;: 0.7,
+  &quot;max_results&quot;: 3
+}
+</pre>
+<br>
+<h3>n8n Workflow Examples</h3>
+<br>
+<p><strong>Daily Ingestion Workflow</strong></p>
+<p>1. Schedule Trigger (daily at 9 AM)</p>
+<p>2. HTTP Request to fetch job listings</p>
+<p>3. Transform data to match schema</p>
+<p>4. POST to <code>/n8n/ingest</code></p>
+<p>5. POST to <code>/n8n/match</code> for new jobs</p>
+<p>6. Send results to Slack/Teams</p>
+<br>
+<p><strong>RSS Feed Monitor</strong></p>
+<p>1. RSS Feed Trigger</p>
+<p>2. Transform RSS items</p>
+<p>3. POST to <code>/n8n/ingest</code></p>
+<p>4. If new jobs found, trigger matching</p>
+<p>5. Format and send notifications</p>
+<br>
+<h2>Matching Algorithm</h2>
+<br>
+<p>The system uses a weighted multi-factor matching approach:</p>
+<br>
+<table>
+<tr><th>Factor</th><th>Weight</th><th>Description</th></tr>
+<tr><td>Cosine Similarity</td><td>45%</td><td>Embedding-based semantic similarity</td></tr>
+<tr><td>Skills Match</td><td>25%</td><td>Direct and fuzzy skill matching</td></tr>
+<tr><td>Role Match</td><td>15%</td><td>Seniority level compatibility</td></tr>
+<tr><td>Language Match</td><td>10%</td><td>Language requirements fulfillment</td></tr>
+<tr><td>Geographic Match</td><td>5%</td><td>Location proximity</td></tr>
+</table>
+<br>
+<h3>Scoring Details</h3>
+<br>
+<li><strong>Cosine Similarity</strong>: Uses OpenAI <code>text-embedding-3-large</code> or local sentence-transformers</li>
+<li><strong>Skills Match</strong>: Exact matches get full score, fuzzy matches (&gt;80% similarity) get partial credit</li>
+<li><strong>Role Match</strong>: Compares seniority levels (Junior/Mid/Senior) with experience years</li>
+<li><strong>Language Match</strong>: Percentage of required languages the consultant speaks</li>
+<li><strong>Geographic Match</strong>: Same city (100%), same region (70%), remote option (60%)</li>
+<br>
+<h2>Database Schema</h2>
+<br>
+<p>Key tables:</p>
+<li><code>jobs</code>: Assignment listings with metadata</li>
+<li><code>consultants</code>: Consultant profiles</li>
+<li><code>job_embeddings</code>: Vector embeddings for jobs (3072 dimensions)</li>
+<li><code>consultant_embeddings</code>: Vector embeddings for consultants</li>
+<li><code>job_consultant_matches</code>: Match results with scores and reasons</li>
+<li><code>ingestion_logs</code>: Track ingestion runs</li>
+<br>
+<h2>Development</h2>
+<br>
+<h3>Local Setup</h3>
+<br>
+<pre>
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up pre-commit hooks (optional)
+pip install pre-commit
+pre-commit install
+
+# Run locally
+uvicorn app.main:app --reload
+</pre>
+<br>
+<h3>Testing</h3>
+<br>
+<pre>
+# Run tests
+pytest tests/
+
+# With coverage
+pytest --cov=app tests/
+</pre>
+<br>
+<h3>Adding New Ingestion Sources</h3>
+<br>
+<p>1. Create new ingester in <code>app/ingest/</code>:</p>
+<pre>
+from app.ingest.base import BaseIngester
+
+class CustomIngester(BaseIngester):
+    async def fetch_jobs(self) -&gt; List[JobIn]:
+        # Implementation
+        pass
+</pre>
+<br>
+<p>2. Add parsing logic in <code>app/parse/</code> if needed</p>
+<br>
+<p>3. Create API endpoint in <code>app/main.py</code></p>
+<br>
+<h2>Configuration</h2>
+<br>
+<h3>Environment Variables</h3>
+<br>
+<table>
+<tr><th>Variable</th><th>Description</th><th>Default</th></tr>
+<tr><td>`DATABASE_URL`</td><td>PostgreSQL connection string</td><td>`postgresql://postgres:postgres@localhost:5433/consultant_matching`</td></tr>
+<tr><td>`EMBEDDING_BACKEND`</td><td>`openai` or `local`</td><td>`openai`</td></tr>
+<tr><td>`OPENAI_API_KEY`</td><td>OpenAI API key (if using OpenAI)</td><td>-</td></tr>
+<tr><td>`REDIS_URL`</td><td>Redis connection (optional)</td><td>`redis://localhost:6380`</td></tr>
+</table>
+<br>
+<h3>Docker Compose Override</h3>
+<br>
+<p>For production settings, create <code>docker-compose.override.yml</code>:</p>
+<pre>
+version: &#x27;3.8&#x27;
+services:
+  api:
+    environment:
+      - EMBEDDING_BACKEND=local
+    restart: always
+</pre>
+<br>
+<h2>Monitoring</h2>
+<br>
+<h3>Health Check</h3>
+<pre>
+curl http://localhost:8001/health
+</pre>
+<br>
+<h3>Logs</h3>
+<pre>
+# API logs
+docker-compose logs -f api
+
+# Database logs
+docker-compose logs -f postgres
+</pre>
+<br>
+<h2>Troubleshooting</h2>
+<br>
+<h3>Common Issues</h3>
+<br>
+<p>1. <strong>Database connection failed</strong></p>
+<li>Ensure PostgreSQL is running: <code>docker-compose ps</code></li>
+<li>Check credentials in DATABASE_URL</li>
+<br>
+<p>2. <strong>Embedding creation slow</strong></p>
+<li>Consider using local embeddings instead of OpenAI</li>
+<li>Set <code>EMBEDDING_BACKEND=local</code></li>
+<br>
+<p>3. <strong>Out of memory with local embeddings</strong></p>
+<li>Sentence-transformers models can be memory intensive</li>
+<li>Use OpenAI embeddings or reduce batch sizes</li>
+<br>
+<h2>License</h2>
+<br>
+<p>MIT</p>
+<br>
+<h2>Support</h2>
+<br>
+<p>For issues or questions, please open a GitHub issue.</p>
+</body>
+</html>

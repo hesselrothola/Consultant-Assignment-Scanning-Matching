@@ -537,3 +537,90 @@ class DatabaseRepository:
             reason_json=json.loads(row['reason_json']),
             created_at=row['created_at']
         )
+    
+    # Helper methods for scrapers
+    async def get_or_create_company(self, company_name: str) -> Company:
+        """Get existing company or create new one."""
+        normalized_name = company_name.lower().strip()
+        
+        # Check if company exists
+        existing = await self.get_company_by_name(normalized_name)
+        if existing:
+            return existing
+        
+        # Create new company
+        return await self.upsert_company(CompanyIn(
+            normalized_name=normalized_name,
+            aliases=[company_name]
+        ))
+    
+    async def get_or_create_broker(self, broker_name: str) -> Broker:
+        """Get existing broker or create new one."""
+        # Check if broker exists
+        existing = await self.get_broker_by_name(broker_name)
+        if existing:
+            return existing
+        
+        # Create new broker
+        return await self.upsert_broker(BrokerIn(name=broker_name))
+    
+    async def log_ingestion(
+        self,
+        source: str,
+        status: str,
+        found_count: int = 0,
+        upserted_count: int = 0,
+        skipped_count: int = 0,
+        error: Optional[str] = None
+    ) -> UUID:
+        """Log an ingestion run."""
+        async with self.pool.acquire() as conn:
+            query = """
+                INSERT INTO ingestion_log (
+                    source, status, found_count, upserted_count, 
+                    skipped_count, started_at, finished_at
+                )
+                VALUES ($1, $2, $3, $4, $5, now() - interval '1 second', now())
+                RETURNING run_id
+            """
+            row = await conn.fetchrow(
+                query,
+                source,
+                status,
+                found_count,
+                upserted_count,
+                skipped_count
+            )
+            return row['run_id']
+    
+    async def get_recent_ingestion_logs(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get recent ingestion logs."""
+        async with self.pool.acquire() as conn:
+            query = """
+                SELECT 
+                    run_id,
+                    source,
+                    status,
+                    found_count,
+                    upserted_count,
+                    skipped_count,
+                    started_at,
+                    finished_at
+                FROM ingestion_log
+                ORDER BY started_at DESC
+                LIMIT $1
+            """
+            rows = await conn.fetch(query, limit)
+            return [
+                {
+                    'run_id': str(row['run_id']),
+                    'source': row['source'],
+                    'status': row['status'],
+                    'found_count': row['found_count'],
+                    'upserted_count': row['upserted_count'],
+                    'skipped_count': row['skipped_count'],
+                    'started_at': row['started_at'].isoformat() if row['started_at'] else None,
+                    'finished_at': row['finished_at'].isoformat() if row['finished_at'] else None
+                }
+                for row in rows
+            ]
