@@ -1,0 +1,481 @@
+import os
+from contextlib import asynccontextmanager
+from typing import List, Optional, Dict, Any
+from uuid import UUID
+import logging
+
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from fastapi.responses import JSONResponse
+import httpx
+
+from app.models import (
+    Job, JobIn, Consultant, ConsultantIn,
+    Company, CompanyIn, Broker, BrokerIn,
+    MatchRequest, MatchResult, ReportSummary
+)
+from app.repo import DatabaseRepository
+from app.embeddings import EmbeddingService
+from app.matching import MatchingService
+from app.reports import ReportingService
+from app.parse.html_parser import GenericHTMLParser
+from app.ingest.rss_ingester import RSSIngester
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Global instances
+db_repo: Optional[DatabaseRepository] = None
+embedding_service: Optional[EmbeddingService] = None
+matching_service: Optional[MatchingService] = None
+reporting_service: Optional[ReportingService] = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    global db_repo, embedding_service, matching_service, reporting_service
+    
+    db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/consultant_matching")
+    
+    db_repo = DatabaseRepository(db_url)
+    await db_repo.init()
+    
+    embedding_service = EmbeddingService()
+    matching_service = MatchingService(db_repo, embedding_service)
+    reporting_service = ReportingService(db_repo)
+    
+    logger.info("Application started successfully")
+    
+    yield
+    
+    # Shutdown
+    if db_repo:
+        await db_repo.close()
+    logger.info("Application shutdown complete")
+
+
+app = FastAPI(
+    title="Consultant Assignment Matching API",
+    version="1.0.0",
+    description="API for ingesting job assignments and matching with consultants",
+    lifespan=lifespan
+)
+
+
+# Dependency to get DB repository
+def get_db() -> DatabaseRepository:
+    if not db_repo:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    return db_repo
+
+
+def get_embedding_service() -> EmbeddingService:
+    if not embedding_service:
+        raise HTTPException(status_code=500, detail="Embedding service not initialized")
+    return embedding_service
+
+
+def get_matching_service() -> MatchingService:
+    if not matching_service:
+        raise HTTPException(status_code=500, detail="Matching service not initialized")
+    return matching_service
+
+
+def get_reporting_service() -> ReportingService:
+    if not reporting_service:
+        raise HTTPException(status_code=500, detail="Reporting service not initialized")
+    return reporting_service
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy"}
+
+
+@app.post("/jobs/upsert", response_model=Job)
+async def upsert_job(
+    job: JobIn,
+    background_tasks: BackgroundTasks,
+    db: DatabaseRepository = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service)
+):
+    """Upsert a job (create or update)."""
+    try:
+        # Handle company if provided
+        if job.company_id is None and hasattr(job, 'company_name') and job.company_name:
+            company = await db.get_company_by_name(job.company_name)
+            if not company:
+                company = await db.upsert_company(CompanyIn(
+                    normalized_name=job.company_name.lower().strip(),
+                    aliases=[job.company_name]
+                ))
+            job.company_id = company.company_id
+        
+        # Handle broker if provided
+        if job.broker_id is None and hasattr(job, 'broker_name') and job.broker_name:
+            broker = await db.get_broker_by_name(job.broker_name)
+            if not broker:
+                broker = await db.upsert_broker(BrokerIn(name=job.broker_name))
+            job.broker_id = broker.broker_id
+        
+        # Save job to database
+        saved_job = await db.upsert_job(job)
+        
+        # Create embedding in background
+        async def create_job_embedding():
+            try:
+                job_text = embeddings.prepare_job_text(job.model_dump())
+                embedding = await embeddings.create_embedding(job_text)
+                await db.store_job_embedding(saved_job.job_id, embedding)
+            except Exception as e:
+                logger.error(f"Error creating embedding for job {saved_job.job_id}: {e}")
+        
+        background_tasks.add_task(create_job_embedding)
+        
+        return saved_job
+        
+    except Exception as e:
+        logger.error(f"Error upserting job: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/jobs/bulk", response_model=List[Job])
+async def bulk_upsert_jobs(
+    jobs: List[JobIn],
+    background_tasks: BackgroundTasks,
+    db: DatabaseRepository = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service)
+):
+    """Bulk upsert multiple jobs."""
+    saved_jobs = []
+    
+    for job in jobs:
+        try:
+            saved_job = await db.upsert_job(job)
+            saved_jobs.append(saved_job)
+            
+            # Create embedding in background
+            async def create_job_embedding(job_id, job_data):
+                try:
+                    job_text = embeddings.prepare_job_text(job_data)
+                    embedding = await embeddings.create_embedding(job_text)
+                    await db.store_job_embedding(job_id, embedding)
+                except Exception as e:
+                    logger.error(f"Error creating embedding for job {job_id}: {e}")
+            
+            background_tasks.add_task(
+                create_job_embedding,
+                saved_job.id,
+                job.model_dump()
+            )
+            
+        except Exception as e:
+            logger.error(f"Error upserting job: {e}")
+    
+    return saved_jobs
+
+
+@app.post("/consultants/upsert", response_model=Consultant)
+async def upsert_consultant(
+    consultant: ConsultantIn,
+    background_tasks: BackgroundTasks,
+    db: DatabaseRepository = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service)
+):
+    """Upsert a consultant (create or update)."""
+    try:
+        # Save consultant to database
+        saved_consultant = await db.upsert_consultant(consultant)
+        
+        # Create embedding in background
+        async def create_consultant_embedding():
+            try:
+                consultant_text = embeddings.prepare_consultant_text(consultant.model_dump())
+                embedding = await embeddings.create_embedding(consultant_text)
+                await db.store_consultant_embedding(saved_consultant.consultant_id, embedding)
+            except Exception as e:
+                logger.error(f"Error creating embedding for consultant {saved_consultant.consultant_id}: {e}")
+        
+        background_tasks.add_task(create_consultant_embedding)
+        
+        return saved_consultant
+        
+    except Exception as e:
+        logger.error(f"Error upserting consultant: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/match/run")
+async def run_matching(
+    request: MatchRequest,
+    matching: MatchingService = Depends(get_matching_service),
+    db: DatabaseRepository = Depends(get_db)
+):
+    """Run matching algorithm for specified jobs and consultants."""
+    try:
+        matches = await matching.run_matching(
+            job_ids=request.job_ids,
+            consultant_ids=request.consultant_ids,
+            min_score=request.min_score,
+            max_results=request.max_results
+        )
+        
+        # Fetch full details for response
+        results = []
+        for match in matches:
+            job = await db.get_job(match.job_id)
+            consultant = await db.get_consultant(match.consultant_id)
+            
+            results.append(MatchResult(
+                job=job,
+                consultant=consultant,
+                match=match
+            ))
+        
+        return results
+        
+    except Exception as e:
+        logger.error(f"Error running matching: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/reports/daily", response_model=ReportSummary)
+async def get_daily_report(
+    reporting: ReportingService = Depends(get_reporting_service)
+):
+    """Get daily report."""
+    try:
+        report = await reporting.generate_daily_report()
+        return report
+    except Exception as e:
+        logger.error(f"Error generating daily report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/reports/weekly", response_model=ReportSummary)
+async def get_weekly_report(
+    reporting: ReportingService = Depends(get_reporting_service)
+):
+    """Get weekly report."""
+    try:
+        report = await reporting.generate_weekly_report()
+        return report
+    except Exception as e:
+        logger.error(f"Error generating weekly report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/reports/daily/slack")
+async def get_daily_report_slack(
+    reporting: ReportingService = Depends(get_reporting_service)
+):
+    """Get daily report formatted for Slack."""
+    try:
+        report = await reporting.generate_daily_report()
+        slack_message = reporting.format_slack_message(report)
+        return slack_message
+    except Exception as e:
+        logger.error(f"Error generating Slack report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/reports/weekly/teams")
+async def get_weekly_report_teams(
+    reporting: ReportingService = Depends(get_reporting_service)
+):
+    """Get weekly report formatted for Microsoft Teams."""
+    try:
+        report = await reporting.generate_weekly_report()
+        teams_card = reporting.format_teams_message(report)
+        return teams_card
+    except Exception as e:
+        logger.error(f"Error generating Teams report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/parse/{source}")
+async def parse_html(
+    source: str,
+    html_content: str
+):
+    """Parse HTML content to extract jobs."""
+    try:
+        parser = GenericHTMLParser(source)
+        jobs = parser.parse_job_listing(html_content)
+        return jobs
+    except Exception as e:
+        logger.error(f"Error parsing HTML: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/ingest/rss")
+async def ingest_from_rss(
+    feed_url: str,
+    source_name: str,
+    background_tasks: BackgroundTasks,
+    db: DatabaseRepository = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service)
+):
+    """Ingest jobs from RSS feed."""
+    try:
+        # Create ingestion log
+        log_id = await db.create_ingestion_log(source_name, feed_url)
+        
+        async with RSSIngester(feed_url, source_name) as ingester:
+            jobs = await ingester.fetch_jobs()
+        
+        jobs_new = 0
+        jobs_updated = 0
+        
+        for job in jobs:
+            try:
+                # Check if job exists
+                existing_job = None
+                if job.external_id:
+                    # Would need to add a method to get job by external_id
+                    pass
+                
+                saved_job = await db.upsert_job(job)
+                
+                if existing_job:
+                    jobs_updated += 1
+                else:
+                    jobs_new += 1
+                
+                # Create embedding in background
+                async def create_job_embedding(job_id, job_data):
+                    try:
+                        job_text = embeddings.prepare_job_text(job_data)
+                        embedding = await embeddings.create_embedding(job_text)
+                        await db.store_job_embedding(
+                            job_id,
+                            embedding,
+                            embeddings.model_version
+                        )
+                    except Exception as e:
+                        logger.error(f"Error creating embedding: {e}")
+                
+                background_tasks.add_task(
+                    create_job_embedding,
+                    saved_job.id,
+                    job.model_dump()
+                )
+                
+            except Exception as e:
+                logger.error(f"Error processing job: {e}")
+        
+        # Update ingestion log
+        await db.update_ingestion_log(
+            log_id,
+            status="completed",
+            jobs_found=len(jobs),
+            jobs_new=jobs_new,
+            jobs_updated=jobs_updated
+        )
+        
+        return {
+            "status": "success",
+            "jobs_found": len(jobs),
+            "jobs_new": jobs_new,
+            "jobs_updated": jobs_updated
+        }
+        
+    except Exception as e:
+        logger.error(f"Error ingesting from RSS: {e}")
+        if log_id:
+            await db.update_ingestion_log(
+                log_id,
+                status="failed",
+                error_message=str(e)
+            )
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# n8n webhook endpoints
+@app.post("/n8n/ingest")
+async def n8n_ingest_webhook(
+    data: Dict[str, Any],
+    background_tasks: BackgroundTasks,
+    db: DatabaseRepository = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service)
+):
+    """n8n webhook for job ingestion."""
+    try:
+        # Extract jobs from n8n payload
+        jobs_data = data.get("jobs", [])
+        source = data.get("source", "n8n")
+        
+        saved_jobs = []
+        for job_data in jobs_data:
+            job = JobIn(**job_data)
+            saved_job = await db.upsert_job(job)
+            saved_jobs.append(saved_job)
+            
+            # Create embedding in background
+            async def create_embedding(job_id, job_dict):
+                try:
+                    text = embeddings.prepare_job_text(job_dict)
+                    embedding = await embeddings.create_embedding(text)
+                    await db.store_job_embedding(job_id, embedding, embeddings.model_version)
+                except Exception as e:
+                    logger.error(f"Embedding error: {e}")
+            
+            background_tasks.add_task(create_embedding, saved_job.id, job_data)
+        
+        return {
+            "status": "success",
+            "jobs_processed": len(saved_jobs),
+            "job_ids": [str(j.id) for j in saved_jobs]
+        }
+        
+    except Exception as e:
+        logger.error(f"n8n webhook error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/n8n/match")
+async def n8n_match_webhook(
+    data: Dict[str, Any],
+    matching: MatchingService = Depends(get_matching_service),
+    db: DatabaseRepository = Depends(get_db)
+):
+    """n8n webhook for running matches."""
+    try:
+        job_ids = data.get("job_ids", [])
+        min_score = data.get("min_score", 0.5)
+        max_results = data.get("max_results", 5)
+        
+        # Convert string UUIDs to UUID objects
+        job_uuids = [UUID(jid) for jid in job_ids] if job_ids else None
+        
+        matches = await matching.run_matching(
+            job_ids=job_uuids,
+            min_score=min_score,
+            max_results=max_results
+        )
+        
+        # Format for n8n
+        results = []
+        for match in matches:
+            job = await db.get_job(match.job_id)
+            consultant = await db.get_consultant(match.consultant_id)
+            
+            results.append({
+                "job_title": job.title,
+                "job_company": job.company,
+                "consultant_name": consultant.name,
+                "consultant_title": consultant.title,
+                "match_score": float(match.match_score),
+                "reason": match.reason_json
+            })
+        
+        return {
+            "status": "success",
+            "matches": results
+        }
+        
+    except Exception as e:
+        logger.error(f"n8n match webhook error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

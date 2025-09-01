@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: consultant_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: consultant_matching
+    ports:
+      - "5433:5432"  # Changed from 5432 to avoid conflict
+    volumes:
+      - consultant_postgres_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - consultant_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: consultant_redis
+    ports:
+      - "6380:6379"  # Changed from 6379 to avoid conflict
+    volumes:
+      - consultant_redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - consultant_network
+
+  api:
+    build: .
+    container_name: consultant_api
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/consultant_matching
+      REDIS_URL: redis://redis:6379
+      EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "8001:8000"  # Changed from 8000 to avoid conflict
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./app:/app/app
+      - ./scripts:/app/scripts
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - consultant_network
+
+volumes:
+  consultant_postgres_data:  # Renamed to avoid conflict
+  consultant_redis_data:      # Renamed to avoid conflict
+
+networks:
+  consultant_network:  # Separate network to avoid conflicts
+    driver: bridge
