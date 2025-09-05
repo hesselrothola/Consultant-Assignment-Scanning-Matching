@@ -15,6 +15,13 @@ python-dotenv==1.0.0
 apscheduler==3.10.4
 jinja2==3.1.2
 
+# Authentication dependencies
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.6
+bcrypt==4.1.2
+email-validator==2.1.0
+
 # Playwright MCP dependencies (optional - for authenticated scrapers)
 aiohttp==3.10.10
 sseclient-py==1.8.0

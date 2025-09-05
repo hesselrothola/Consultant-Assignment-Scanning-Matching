@@ -9,36 +9,65 @@ logger = logging.getLogger(__name__)
 
 class EmbeddingService:
     def __init__(self):
-        self.backend = "openai"  # Only OpenAI for now
-        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model_version = "text-embedding-3-small"
+        self.backend = os.getenv("EMBEDDING_BACKEND", "local")
+        if self.backend == "openai":
+            api_key = os.getenv("OPENAI_API_KEY")
+            if api_key:
+                self.client = AsyncOpenAI(api_key=api_key)
+                self.model_version = "text-embedding-3-small"
+            else:
+                logger.warning("OPENAI_API_KEY not set, falling back to local embeddings")
+                self.backend = "local"
+        
+        if self.backend == "local":
+            self.client = None
+            self.model_version = "local"
     
     async def create_embedding(self, text: str) -> List[float]:
         """Create embedding for a single text."""
         if not text:
             return []
         
-        try:
-            response = await self.client.embeddings.create(
-                model=self.model_version,
-                input=text
-            )
-            return response.data[0].embedding
-        except Exception as e:
-            logger.error(f"OpenAI embedding error: {e}")
-            raise
+        if self.backend == "openai" and self.client:
+            try:
+                response = await self.client.embeddings.create(
+                    model=self.model_version,
+                    input=text
+                )
+                return response.data[0].embedding
+            except Exception as e:
+                logger.error(f"OpenAI embedding error: {e}")
+                raise
+        else:
+            # Simple local embedding - deterministic vector from text
+            import hashlib
+            text_hash = hashlib.sha256(text.encode()).digest()
+            # Create a 1536-dimensional vector
+            embedding = []
+            for i in range(192):  # 192 * 8 = 1536
+                chunk = text_hash[i % 32]
+                for j in range(8):
+                    embedding.append((chunk >> j & 1) * 0.5 - 0.25)
+            return embedding[:1536]
     
     async def create_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Create embeddings for multiple texts."""
-        try:
-            response = await self.client.embeddings.create(
-                model=self.model_version,
-                input=texts
-            )
-            return [item.embedding for item in response.data]
-        except Exception as e:
-            logger.error(f"OpenAI embedding error: {e}")
-            raise
+        if self.backend == "openai" and self.client:
+            try:
+                response = await self.client.embeddings.create(
+                    model=self.model_version,
+                    input=texts
+                )
+                return [item.embedding for item in response.data]
+            except Exception as e:
+                logger.error(f"OpenAI embedding error: {e}")
+                raise
+        else:
+            # Use single embedding method for each text
+            embeddings = []
+            for text in texts:
+                embeddings.append(await self.create_embedding(text))
+            return embeddings
     
     def prepare_job_text(self, job_data: dict) -> str:
         """Prepare job data for embedding."""

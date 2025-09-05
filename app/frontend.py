@@ -3,15 +3,16 @@ Frontend routes for the consultant matching system
 Uses FastAPI with HTMX for dynamic interactions without heavy JavaScript
 """
 
-from fastapi import APIRouter, Request, Form, Query, BackgroundTasks
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Request, Form, Query, BackgroundTasks, Depends
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional, List
 import os
 from datetime import datetime, timezone
 from uuid import UUID
+from app.auth_simple import check_auth, require_auth
 
-router = APIRouter(tags=["frontend"])
+router = APIRouter(prefix="/consultant", tags=["frontend"])
 
 # Setup Jinja2 templates
 templates = Jinja2Templates(directory="app/templates")
@@ -19,9 +20,15 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     """Main dashboard view"""
+    # Check authentication
+    auth_result = require_auth(request)
+    if isinstance(auth_result, RedirectResponse):
+        return auth_result
+    
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
-        "title": "Consultant Matching Dashboard"
+        "title": "Consultant Matching Dashboard",
+        "user": auth_result
     })
 
 @router.get("/jobs", response_class=HTMLResponse)
@@ -269,3 +276,220 @@ async def reports_view(request: Request):
         "weekly_report": weekly_report,
         "generated_at": datetime.now(timezone.utc).isoformat()
     })
+
+@router.get("/users", response_class=HTMLResponse)
+async def users_management(request: Request):
+    """User management page (admin only)"""
+    # Check authentication
+    auth_result = require_auth(request)
+    if isinstance(auth_result, RedirectResponse):
+        return auth_result
+    
+    # Check if user is admin
+    if auth_result.get('role') != 'admin':
+        return HTMLResponse(
+            content="<h1>403 Forbidden</h1><p>Admin access required</p>",
+            status_code=403
+        )
+    
+    from app.main import db_repo
+    
+    # Get all users from database
+    users = await db_repo.get_all_users()
+    
+    return templates.TemplateResponse("users.html", {
+        "request": request,
+        "title": "User Management",
+        "user": auth_result,
+        "users": users
+    })
+
+@router.post("/users/add", response_class=HTMLResponse)
+async def add_user(
+    request: Request,
+    username: str = Form(...),
+    full_name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...)
+):
+    """Add new user (admin only)"""
+    # Check authentication
+    auth_result = require_auth(request)
+    if isinstance(auth_result, RedirectResponse):
+        return auth_result
+    
+    # Check if user is admin
+    if auth_result.get('role') != 'admin':
+        return HTMLResponse(content="<h1>403 Forbidden</h1>", status_code=403)
+    
+    from app.main import db_repo
+    from app.auth import get_password_hash
+    
+    # Hash the password
+    hashed_password = get_password_hash(password)
+    
+    # Create user in database
+    try:
+        await db_repo.create_user(
+            username=username,
+            full_name=full_name,
+            email=email,
+            hashed_password=hashed_password,
+            role=role,
+            is_active=True
+        )
+    except Exception as e:
+        return HTMLResponse(
+            content=f"<script>alert('Error creating user: {str(e)}'); window.location.href='/consultant/users';</script>"
+        )
+    
+    return RedirectResponse(url="/consultant/users", status_code=303)
+
+@router.post("/users/{user_id}/reset-password", response_class=HTMLResponse)
+async def reset_user_password(
+    request: Request,
+    user_id: UUID,
+    new_password: str = Form(...)
+):
+    """Reset user password (admin only)"""
+    # Check authentication
+    auth_result = require_auth(request)
+    if isinstance(auth_result, RedirectResponse):
+        return auth_result
+    
+    # Check if user is admin
+    if auth_result.get('role') != 'admin':
+        return HTMLResponse(content="<h1>403 Forbidden</h1>", status_code=403)
+    
+    from app.main import db_repo
+    from app.auth import get_password_hash
+    
+    # Hash the new password
+    hashed_password = get_password_hash(new_password)
+    
+    # Update password in database
+    try:
+        await db_repo.update_user_password(user_id, hashed_password)
+        return HTMLResponse(
+            content="<div class='alert alert-success'>Password reset successfully!</div>",
+            headers={"HX-Trigger": "password-reset-success"}
+        )
+    except Exception as e:
+        return HTMLResponse(
+            content=f"<div class='alert alert-danger'>Error: {str(e)}</div>",
+            status_code=500
+        )
+
+@router.post("/users/{user_id}/toggle-active", response_class=HTMLResponse)
+async def toggle_user_active(request: Request, user_id: UUID):
+    """Toggle user active status (admin only)"""
+    # Check authentication
+    auth_result = require_auth(request)
+    if isinstance(auth_result, RedirectResponse):
+        return auth_result
+    
+    # Check if user is admin
+    if auth_result.get('role') != 'admin':
+        return HTMLResponse(content="<h1>403 Forbidden</h1>", status_code=403)
+    
+    from app.main import db_repo
+    
+    try:
+        # Get current user status
+        user = await db_repo.get_user_by_id(str(user_id))
+        if user:
+            # Toggle active status
+            await db_repo.update_user_active_status(user_id, not user['is_active'])
+            return HTMLResponse(
+                content="<script>window.location.reload();</script>"
+            )
+        else:
+            return HTMLResponse(content="User not found", status_code=404)
+    except Exception as e:
+        return HTMLResponse(
+            content=f"<div class='alert alert-danger'>Error: {str(e)}</div>",
+            status_code=500
+        )
+
+@router.get("/users/{user_id}/edit", response_class=HTMLResponse)
+async def edit_user_form(request: Request, user_id: UUID):
+    """Get edit user form (admin only)"""
+    # Check authentication
+    auth_result = require_auth(request)
+    if isinstance(auth_result, RedirectResponse):
+        return auth_result
+    
+    # Check if user is admin
+    if auth_result.get('role') != 'admin':
+        return HTMLResponse(content="<h1>403 Forbidden</h1>", status_code=403)
+    
+    from app.main import db_repo
+    
+    user = await db_repo.get_user_by_id(str(user_id))
+    if not user:
+        return HTMLResponse(content="User not found", status_code=404)
+    
+    # Return edit form HTML (for HTMX)
+    return f"""
+    <div class="modal-content">
+        <h3>Edit User: {user['username']}</h3>
+        <form hx-post="/consultant/users/{user_id}/update" hx-target="#edit-result">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" name="full_name" value="{user['full_name']}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" value="{user['email']}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role" class="form-control">
+                    <option value="viewer" {"selected" if user['role'] == "viewer" else ""}>Viewer</option>
+                    <option value="manager" {"selected" if user['role'] == "manager" else ""}>Manager</option>
+                    <option value="admin" {"selected" if user['role'] == "admin" else ""}>Admin</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Update</button>
+            <button type="button" onclick="closeEditModal()" class="btn btn-secondary">Cancel</button>
+        </form>
+        <div id="edit-result"></div>
+    </div>
+    """
+
+@router.post("/users/{user_id}/update", response_class=HTMLResponse)
+async def update_user(
+    request: Request,
+    user_id: UUID,
+    full_name: str = Form(...),
+    email: str = Form(...),
+    role: str = Form(...)
+):
+    """Update user details (admin only)"""
+    # Check authentication
+    auth_result = require_auth(request)
+    if isinstance(auth_result, RedirectResponse):
+        return auth_result
+    
+    # Check if user is admin
+    if auth_result.get('role') != 'admin':
+        return HTMLResponse(content="<h1>403 Forbidden</h1>", status_code=403)
+    
+    from app.main import db_repo
+    
+    try:
+        await db_repo.update_user(
+            user_id=str(user_id),
+            full_name=full_name,
+            email=email,
+            role=role
+        )
+        return HTMLResponse(
+            content="<script>alert('User updated successfully!'); window.location.reload();</script>"
+        )
+    except Exception as e:
+        return HTMLResponse(
+            content=f"<div class='alert alert-danger'>Error: {str(e)}</div>",
+            status_code=500
+        )

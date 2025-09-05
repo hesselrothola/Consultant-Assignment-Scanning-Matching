@@ -25,6 +25,8 @@ from app.parse.html_parser import GenericHTMLParser
 from app.ingest.rss_ingester import RSSIngester
 from app.scrapers import BrainvilleScraper, CinodeScraper
 from app.config import settings, SCRAPER_CONFIGS
+from app.auth_routes import router as auth_router
+from app.auth import get_current_user, require_user, User
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -917,9 +919,21 @@ async def stop_scheduler():
         raise HTTPException(status_code=500, detail=f"Stop failed: {str(e)}")
 
 
+# Include authentication router
+app.include_router(auth_router)
+
 # Include frontend router
 from app.frontend import router as frontend_router
 app.include_router(frontend_router)
+
+# Root redirect based on auth status
+@app.get("/")
+async def root(current_user: Optional[User] = Depends(get_current_user)):
+    """Root endpoint - redirect to dashboard if logged in, otherwise to login"""
+    from fastapi.responses import RedirectResponse
+    if current_user:
+        return RedirectResponse(url="/consultant/", status_code=302)
+    return RedirectResponse(url="/auth/login", status_code=302)
 
 # Mount static files if needed
 # app.mount("/static", StaticFiles(directory="app/static"), name="static")

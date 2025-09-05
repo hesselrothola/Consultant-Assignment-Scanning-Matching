@@ -624,6 +624,130 @@ class DatabaseRepository:
                 }
                 for row in rows
             ]
+    
+    # User authentication methods
+    async def create_user(self, username: str, email: str, full_name: str, 
+                         hashed_password: str, role: str = 'viewer', is_active: bool = True) -> Dict[str, Any]:
+        """Create a new user."""
+        query = """
+            INSERT INTO users (username, email, full_name, hashed_password, role, is_active)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING user_id, username, email, full_name, role, is_active, created_at
+        """
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, username, email, full_name, hashed_password, role, is_active)
+            return dict(row)
+    
+    async def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+        """Get user by username."""
+        query = """
+            SELECT user_id, username, email, full_name, hashed_password, role, 
+                   is_active, created_at, last_login
+            FROM users
+            WHERE username = $1
+        """
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, username)
+            return dict(row) if row else None
+    
+    async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user by ID."""
+        query = """
+            SELECT user_id, username, email, full_name, hashed_password, role, 
+                   is_active, created_at, last_login
+            FROM users
+            WHERE user_id = $1
+        """
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, user_id)
+            return dict(row) if row else None
+    
+    async def update_user(self, user_id: str, **kwargs) -> Optional[Dict[str, Any]]:
+        """Update user details."""
+        # Build dynamic update query
+        updates = []
+        values = []
+        param_count = 1
+        
+        for field, value in kwargs.items():
+            if value is not None and field in ['email', 'full_name', 'role', 'is_active', 'hashed_password']:
+                updates.append(f"{field} = ${param_count}")
+                values.append(value)
+                param_count += 1
+        
+        if not updates:
+            return None
+        
+        values.append(user_id)
+        query = f"""
+            UPDATE users
+            SET {', '.join(updates)}, updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = ${param_count}
+            RETURNING user_id, username, email, full_name, role, is_active, created_at, updated_at
+        """
+        
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(query, *values)
+            return dict(row) if row else None
+    
+    async def delete_user(self, user_id: str) -> bool:
+        """Delete a user."""
+        query = "DELETE FROM users WHERE user_id = $1"
+        async with self.pool.acquire() as conn:
+            result = await conn.execute(query, user_id)
+            return result != "DELETE 0"
+    
+    async def get_all_users(self) -> List[Dict[str, Any]]:
+        """Get all users."""
+        query = """
+            SELECT user_id, username, email, full_name, role, is_active, 
+                   created_at, last_login
+            FROM users
+            ORDER BY created_at DESC
+        """
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query)
+            return [dict(row) for row in rows]
+    
+    async def update_last_login(self, user_id: str) -> None:
+        """Update user's last login timestamp."""
+        query = "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE user_id = $1"
+        async with self.pool.acquire() as conn:
+            await conn.execute(query, user_id)
+    
+    async def update_user_password(self, user_id: UUID, hashed_password: str) -> bool:
+        """Update user's password."""
+        query = """
+            UPDATE users 
+            SET hashed_password = $2, updated_at = CURRENT_TIMESTAMP 
+            WHERE user_id = $1
+        """
+        async with self.pool.acquire() as conn:
+            result = await conn.execute(query, str(user_id), hashed_password)
+            return result != "UPDATE 0"
+    
+    async def update_user_active_status(self, user_id: UUID, is_active: bool) -> bool:
+        """Update user's active status."""
+        query = """
+            UPDATE users 
+            SET is_active = $2, updated_at = CURRENT_TIMESTAMP 
+            WHERE user_id = $1
+        """
+        async with self.pool.acquire() as conn:
+            result = await conn.execute(query, str(user_id), is_active)
+            return result != "UPDATE 0"
+    
+    async def log_user_action(self, user_id: str, action: str, resource_type: str = None,
+                             resource_id: str = None, details: dict = None, ip_address: str = None):
+        """Log user action for audit trail."""
+        query = """
+            INSERT INTO user_audit_log (user_id, action, resource_type, resource_id, details, ip_address)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        """
+        import json
+        details_json = json.dumps(details) if details else None
+        async with self.pool.acquire() as conn:
+            await conn.execute(query, user_id, action, resource_type, resource_id, details_json, ip_address)
 
     # Scanning Configuration Operations
     async def get_active_scanning_configs(self) -> List[Dict[str, Any]]:

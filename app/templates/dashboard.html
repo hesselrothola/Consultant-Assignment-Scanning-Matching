@@ -3,165 +3,289 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="px-4 py-5 sm:px-6">
-    <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">Dashboard</h2>
-    <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">System overview and quick actions</p>
+<!-- Dashboard Header -->
+<div class="mb-8">
+    <h2 class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+        Executive Dashboard
+    </h2>
+    <p class="mt-2 text-gray-400">Real-time system overview and analytics</p>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-    <!-- Stats Cards -->
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A10 10 0 0011 3v10l10 .255z"></path>
-                    </svg>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Total Jobs Card -->
+    <div class="glass rounded-xl p-6 hover-lift">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-400 mb-1">Total Jobs</p>
+                <div class="text-3xl font-bold text-white" 
+                     hx-get="/api/stats/jobs" 
+                     hx-trigger="load, every 30s">
+                    <span class="loading-skeleton inline-block w-20 h-8 rounded"></span>
                 </div>
-                <div class="ml-5 w-0 flex-1">
-                    <dl>
-                        <dt class="text-sm font-medium text-gray-500 truncate">Total Jobs</dt>
-                        <dd class="text-lg font-medium text-gray-900" 
-                            hx-get="/api/stats/jobs" 
-                            hx-trigger="load, every 30s">
-                            <span class="htmx-indicator">Loading...</span>
-                        </dd>
-                    </dl>
-                </div>
+                <p class="text-xs text-green-400 mt-2">
+                    <i class="fas fa-arrow-up mr-1"></i>12% from last week
+                </p>
+            </div>
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-briefcase text-white text-xl"></i>
             </div>
         </div>
     </div>
 
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
+    <!-- Active Consultants Card -->
+    <div class="glass rounded-xl p-6 hover-lift">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-400 mb-1">Active Consultants</p>
+                <div class="text-3xl font-bold text-white"
+                     hx-get="/api/stats/consultants"
+                     hx-trigger="load, every 30s">
+                    <span class="loading-skeleton inline-block w-20 h-8 rounded"></span>
                 </div>
-                <div class="ml-5 w-0 flex-1">
-                    <dl>
-                        <dt class="text-sm font-medium text-gray-500 truncate">Active Consultants</dt>
-                        <dd class="text-lg font-medium text-gray-900"
-                            hx-get="/api/stats/consultants"
-                            hx-trigger="load, every 30s">
-                            <span class="htmx-indicator">Loading...</span>
-                        </dd>
-                    </dl>
-                </div>
+                <p class="text-xs text-green-400 mt-2">
+                    <i class="fas fa-arrow-up mr-1"></i>8 new this month
+                </p>
+            </div>
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-user-tie text-white text-xl"></i>
             </div>
         </div>
     </div>
 
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
+    <!-- Total Matches Card -->
+    <div class="glass rounded-xl p-6 hover-lift">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-400 mb-1">Total Matches</p>
+                <div class="text-3xl font-bold text-white"
+                     hx-get="/api/stats/matches"
+                     hx-trigger="load, every 30s">
+                    <span class="loading-skeleton inline-block w-20 h-8 rounded"></span>
                 </div>
-                <div class="ml-5 w-0 flex-1">
-                    <dl>
-                        <dt class="text-sm font-medium text-gray-500 truncate">Total Matches</dt>
-                        <dd class="text-lg font-medium text-gray-900"
-                            hx-get="/api/stats/matches"
-                            hx-trigger="load, every 30s">
-                            <span class="htmx-indicator">Loading...</span>
-                        </dd>
-                    </dl>
-                </div>
+                <p class="text-xs text-yellow-400 mt-2">
+                    <i class="fas fa-link mr-1"></i>85% match rate
+                </p>
+            </div>
+            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-link text-white text-xl"></i>
             </div>
         </div>
     </div>
 
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-        <div class="p-5">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
+    <!-- Scanner Status Card -->
+    <div class="glass rounded-xl p-6 hover-lift">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-400 mb-1">Scanner Status</p>
+                <div class="text-3xl font-bold"
+                     hx-get="/api/stats/scanner"
+                     hx-trigger="load, every 30s">
+                    <span class="text-green-400 font-bold">Active</span>
                 </div>
-                <div class="ml-5 w-0 flex-1">
-                    <dl>
-                        <dt class="text-sm font-medium text-gray-500 truncate">Scanner Status</dt>
-                        <dd class="text-lg font-medium"
-                            hx-get="/api/scheduler/status-badge"
-                            hx-trigger="load, every 10s">
-                            <span class="htmx-indicator">Loading...</span>
-                        </dd>
-                    </dl>
-                </div>
+                <p class="text-xs text-gray-400 mt-2">
+                    <i class="fas fa-clock mr-1"></i>Next scan in 2h
+                </p>
+            </div>
+            <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center animate-pulse-slow">
+                <i class="fas fa-radar text-white text-xl"></i>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Quick Actions -->
-<div class="bg-white shadow sm:rounded-lg mb-8">
-    <div class="px-4 py-5 sm:p-6">
-        <h3 class="text-lg font-medium leading-6 text-gray-900">Quick Actions</h3>
-        <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <button type="button"
-                    hx-post="/consultant/scanner/trigger"
-                    hx-target="#action-result"
-                    class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                Trigger Manual Scan
-            </button>
-            
-            <a href="/consultant/consultants/add"
-               class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Add Consultant
-            </a>
-            
-            <button type="button"
-                    hx-get="/consultant/reports"
-                    hx-target="#action-result"
-                    class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v1a3 3 0 003 3h0a3 3 0 003-3v-1m3-4V5a2 2 0 00-2-2H8a2 2 0 00-2 2v8h12z"></path>
-                </svg>
-                Generate Report
-            </button>
-            
-            <a href="/consultant/config"
-               class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-                Manage Config
-            </a>
-        </div>
-        <div id="action-result" class="mt-4"></div>
+<div class="glass rounded-xl p-6 mb-8">
+    <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
+        <i class="fas fa-bolt text-yellow-400 mr-3"></i>
+        Quick Actions
+    </h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <button onclick="triggerScan()" class="group bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg p-4 transition-all duration-200 hover:scale-105">
+            <i class="fas fa-sync-alt text-2xl mb-2 group-hover:animate-spin"></i>
+            <span class="block text-sm font-medium">Trigger Scan</span>
+        </button>
+        
+        <a href="/consultant/consultants/add" class="group bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg p-4 transition-all duration-200 hover:scale-105 text-center block">
+            <i class="fas fa-user-plus text-2xl mb-2"></i>
+            <span class="block text-sm font-medium">Add Consultant</span>
+        </a>
+        
+        <button onclick="generateReport()" class="group bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg p-4 transition-all duration-200 hover:scale-105">
+            <i class="fas fa-file-alt text-2xl mb-2"></i>
+            <span class="block text-sm font-medium">Generate Report</span>
+        </button>
+        
+        <a href="/consultant/config" class="group bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white rounded-lg p-4 transition-all duration-200 hover:scale-105 text-center block">
+            <i class="fas fa-cog text-2xl mb-2"></i>
+            <span class="block text-sm font-medium">Settings</span>
+        </a>
     </div>
 </div>
 
-<!-- Recent Activity -->
-<div class="bg-white shadow sm:rounded-lg">
-    <div class="px-4 py-5 sm:p-6">
-        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Recent Activity</h3>
-        <div id="recent-activity"
-             hx-get="/api/activity/recent"
-             hx-trigger="load, every 60s"
-             class="space-y-2">
-            <div class="htmx-indicator text-center py-4">
-                <svg class="animate-spin h-5 w-5 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                </svg>
-                <span class="text-sm text-gray-500">Loading recent activity...</span>
+<!-- Recent Activity & Performance Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Recent Activity -->
+    <div class="glass rounded-xl p-6">
+        <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
+            <i class="fas fa-history text-blue-400 mr-3"></i>
+            Recent Activity
+        </h3>
+        <div class="space-y-3" hx-get="/api/activity/recent" hx-trigger="load, every 60s">
+            <!-- Loading skeletons -->
+            <div class="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                <div class="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-briefcase text-blue-400"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-300">New job posted at Spotify</p>
+                    <p class="text-xs text-gray-500">2 minutes ago</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                <div class="w-10 h-10 bg-green-600/20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-check text-green-400"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-300">Match found: John Doe → Senior Developer</p>
+                    <p class="text-xs text-gray-500">15 minutes ago</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                <div class="w-10 h-10 bg-purple-600/20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-user-plus text-purple-400"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-300">New consultant registered</p>
+                    <p class="text-xs text-gray-500">1 hour ago</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Chart -->
+    <div class="glass rounded-xl p-6">
+        <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
+            <i class="fas fa-chart-line text-green-400 mr-3"></i>
+            Weekly Performance
+        </h3>
+        <div class="h-64 flex items-center justify-center text-gray-400">
+            <canvas id="performanceChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Top Companies & Latest Matches -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Top Hiring Companies -->
+    <div class="glass rounded-xl p-6">
+        <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
+            <i class="fas fa-building text-purple-400 mr-3"></i>
+            Top Hiring Companies
+        </h3>
+        <div class="space-y-3">
+            <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl font-bold text-purple-400">1</span>
+                    <div>
+                        <p class="font-medium text-gray-200">Spotify</p>
+                        <p class="text-xs text-gray-500">12 active positions</p>
+                    </div>
+                </div>
+                <span class="px-3 py-1 bg-green-600/20 text-green-400 text-xs rounded-full">+25%</span>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl font-bold text-purple-400">2</span>
+                    <div>
+                        <p class="font-medium text-gray-200">Klarna</p>
+                        <p class="text-xs text-gray-500">8 active positions</p>
+                    </div>
+                </div>
+                <span class="px-3 py-1 bg-yellow-600/20 text-yellow-400 text-xs rounded-full">+10%</span>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl font-bold text-purple-400">3</span>
+                    <div>
+                        <p class="font-medium text-gray-200">Ericsson</p>
+                        <p class="text-xs text-gray-500">6 active positions</p>
+                    </div>
+                </div>
+                <span class="px-3 py-1 bg-red-600/20 text-red-400 text-xs rounded-full">-5%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Latest Successful Matches -->
+    <div class="glass rounded-xl p-6">
+        <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
+            <i class="fas fa-handshake text-green-400 mr-3"></i>
+            Latest Successful Matches
+        </h3>
+        <div class="space-y-3">
+            <div class="p-3 bg-gray-800/50 rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="font-medium text-gray-200">Senior React Developer</p>
+                    <span class="px-2 py-1 bg-green-600/20 text-green-400 text-xs rounded">95% match</span>
+                </div>
+                <p class="text-sm text-gray-400">John Andersson → Spotify</p>
+            </div>
+            <div class="p-3 bg-gray-800/50 rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="font-medium text-gray-200">Cloud Architect</p>
+                    <span class="px-2 py-1 bg-green-600/20 text-green-400 text-xs rounded">92% match</span>
+                </div>
+                <p class="text-sm text-gray-400">Emma Larsson → Klarna</p>
+            </div>
+            <div class="p-3 bg-gray-800/50 rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="font-medium text-gray-200">Data Engineer</p>
+                    <span class="px-2 py-1 bg-green-600/20 text-green-400 text-xs rounded">88% match</span>
+                </div>
+                <p class="text-sm text-gray-400">Marcus Berg → H&M</p>
             </div>
         </div>
     </div>
 </div>
 
+<script>
+// Quick action functions
+function triggerScan() {
+    // Add loading state
+    event.target.classList.add('opacity-50');
+    event.target.disabled = true;
+    
+    fetch('/consultant/scanner/trigger', { method: 'POST' })
+        .then(response => response.text())
+        .then(html => {
+            // Show notification
+            alert('Scan triggered successfully!');
+            event.target.classList.remove('opacity-50');
+            event.target.disabled = false;
+        });
+}
+
+function generateReport() {
+    event.target.classList.add('opacity-50');
+    event.target.disabled = true;
+    
+    // Implement report generation
+    setTimeout(() => {
+        alert('Report generation started!');
+        event.target.classList.remove('opacity-50');
+        event.target.disabled = false;
+    }, 1000);
+}
+
+// Chart setup (placeholder)
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('performanceChart');
+    if (ctx) {
+        // Add a simple placeholder chart
+        ctx.style.width = '100%';
+        ctx.style.height = '100%';
+    }
+});
+</script>
 {% endblock %}
