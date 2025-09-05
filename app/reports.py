@@ -74,7 +74,7 @@ class ReportingService:
         total_query = """
             SELECT COUNT(*) as count
             FROM jobs
-            WHERE created_at >= $1 AND created_at < $2
+            WHERE scraped_at >= $1 AND scraped_at < $2
         """
         total_result = await conn.fetchrow(total_query, start_time, end_time)
         
@@ -82,7 +82,7 @@ class ReportingService:
         new_query = """
             SELECT COUNT(*) as count
             FROM jobs
-            WHERE created_at >= $1 AND created_at < $2
+            WHERE scraped_at >= $1 AND scraped_at < $2
         """
         new_result = await conn.fetchrow(new_query, start_time, end_time)
         
@@ -112,7 +112,7 @@ class ReportingService:
             SELECT COUNT(*) as count
             FROM job_consultant_matches
             WHERE created_at >= $1 AND created_at < $2
-            AND match_score >= 0.8
+            AND score >= 0.8
         """
         high_quality_result = await conn.fetchrow(high_quality_query, start_time, end_time)
         
@@ -132,16 +132,16 @@ class ReportingService:
         
         query = """
             SELECT 
-                c.id,
+                c.consultant_id,
                 c.name,
-                c.title,
-                COUNT(m.id) as match_count,
-                AVG(m.match_score) as avg_score,
-                MAX(m.match_score) as max_score
+                c.role,
+                COUNT(m.job_id) as match_count,
+                AVG(m.score) as avg_score,
+                MAX(m.score) as max_score
             FROM consultants c
-            JOIN job_consultant_matches m ON c.id = m.consultant_id
+            JOIN job_consultant_matches m ON c.consultant_id = m.consultant_id
             WHERE m.created_at >= $1 AND m.created_at < $2
-            GROUP BY c.id, c.name, c.title
+            GROUP BY c.consultant_id, c.name, c.role
             ORDER BY match_count DESC, avg_score DESC
             LIMIT $3
         """
@@ -150,9 +150,9 @@ class ReportingService:
         
         return [
             {
-                'id': str(row['id']),
+                'id': str(row['consultant_id']),
                 'name': row['name'],
-                'title': row['title'],
+                'title': row['role'],
                 'match_count': row['match_count'],
                 'avg_score': float(row['avg_score']) if row['avg_score'] else 0,
                 'max_score': float(row['max_score']) if row['max_score'] else 0
@@ -172,7 +172,7 @@ class ReportingService:
         query = """
             SELECT skills
             FROM jobs
-            WHERE created_at >= $1 AND created_at < $2
+            WHERE scraped_at >= $1 AND scraped_at < $2
             AND skills IS NOT NULL
         """
         
@@ -204,7 +204,7 @@ class ReportingService:
         query = """
             SELECT source, COUNT(*) as count
             FROM jobs
-            WHERE created_at >= $1 AND created_at < $2
+            WHERE scraped_at >= $1 AND scraped_at < $2
             GROUP BY source
             ORDER BY count DESC
         """

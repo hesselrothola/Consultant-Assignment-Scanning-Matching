@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "env": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    },
+    "sqlite": {
+      "command": "npx",
+      "args": ["mcp-sqlite-server", "${SQLITE_DB}"]
+    },
+    "openapi": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/openapi-mcp-server"]
+    }
+  }
+}

@@ -189,3 +189,108 @@ class ReportSummary(BaseModel):
     top_consultants: List[Dict[str, Any]]
     top_skills: List[Dict[str, Any]]
     sources_breakdown: Dict[str, int]
+    # Additional fields for weekly reports
+    avg_match_score: Optional[float] = 0.0
+    new_companies: Optional[int] = 0
+    job_growth: Optional[float] = 0.0
+    match_quality_trend: Optional[float] = 0.0
+    prospect_companies: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+
+
+# AI Scanner Configuration models
+class ScanningConfigIn(BaseModel):
+    config_name: str
+    description: Optional[str] = None
+    target_skills: List[str] = Field(default_factory=list)
+    target_roles: List[str] = Field(default_factory=list)
+    seniority_levels: List[str] = Field(default_factory=list)
+    target_locations: List[str] = Field(default_factory=list)
+    languages: List[str] = Field(default_factory=list)
+    contract_durations: List[str] = Field(default_factory=list)
+    onsite_modes: List[str] = Field(default_factory=list)
+    is_active: bool = True
+
+
+class ScanningConfig(ScanningConfigIn):
+    config_id: UUID
+    total_matches_generated: int = 0
+    successful_placements: int = 0
+    last_match_score: Optional[Decimal] = None
+    performance_score: Decimal = Decimal('0')
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SourceConfigOverrideIn(BaseModel):
+    source_name: str
+    parameter_overrides: Dict[str, Any] = Field(default_factory=dict)
+    is_enabled: bool = True
+
+
+class SourceConfigOverride(SourceConfigOverrideIn):
+    override_id: UUID
+    config_id: UUID
+    last_run_at: Optional[datetime] = None
+    success_rate: Decimal = Decimal('0')
+    avg_matches_per_run: Decimal = Decimal('0')
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConfigPerformanceLogIn(BaseModel):
+    config_id: UUID
+    source_name: Optional[str] = None
+    test_date: date
+    jobs_found: int = 0
+    matches_generated: int = 0
+    quality_score: Optional[Decimal] = None
+    consultant_interest_rate: Optional[Decimal] = None
+    placement_rate: Optional[Decimal] = None
+    notes: Optional[str] = None
+
+
+class ConfigPerformanceLog(ConfigPerformanceLogIn):
+    log_id: UUID
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LearningParameterIn(BaseModel):
+    parameter_name: str
+    parameter_value: str
+    learned_from_config_id: Optional[UUID] = None
+
+
+class LearningParameter(LearningParameterIn):
+    param_id: UUID
+    effectiveness_score: Decimal = Decimal('0')
+    usage_count: int = 0
+    last_used_at: Optional[datetime] = None
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+# Configuration management request/response models
+class ConfigurationRequest(BaseModel):
+    """Request to create or update scanning configuration."""
+    config: ScanningConfigIn
+    source_overrides: List[SourceConfigOverrideIn] = Field(default_factory=list)
+
+
+class ConfigurationResponse(BaseModel):
+    """Response containing configuration and performance data."""
+    config: ScanningConfig
+    source_overrides: List[SourceConfigOverride]
+    recent_performance: List[ConfigPerformanceLog]
+    learned_parameters: List[LearningParameter]
+
+
+class ConfigurationOptimizationRequest(BaseModel):
+    """Request to optimize configuration based on performance data."""
+    config_id: UUID
+    optimization_goals: Dict[str, float] = Field(default_factory=dict)  # e.g., {"match_quality": 0.8, "placement_rate": 0.3}
+    time_period_days: int = 30

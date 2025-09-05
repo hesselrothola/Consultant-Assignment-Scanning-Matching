@@ -9,64 +9,36 @@ logger = logging.getLogger(__name__)
 
 class EmbeddingService:
     def __init__(self):
-        self.backend = os.getenv("EMBEDDING_BACKEND", "openai").lower()
-        self.model_version = None
-        
-        if self.backend == "openai":
-            self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-            self.model_version = "text-embedding-3-large"
-        else:
-            # Local backend using sentence-transformers
-            from sentence_transformers import SentenceTransformer
-            self.model = SentenceTransformer('all-mpnet-base-v2')
-            self.model_version = "all-mpnet-base-v2"
+        self.backend = "openai"  # Only OpenAI for now
+        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.model_version = "text-embedding-3-small"
     
     async def create_embedding(self, text: str) -> List[float]:
         """Create embedding for a single text."""
         if not text:
             return []
         
-        if self.backend == "openai":
-            try:
-                response = await self.client.embeddings.create(
-                    model=self.model_version,
-                    input=text
-                )
-                return response.data[0].embedding
-            except Exception as e:
-                logger.error(f"OpenAI embedding error: {e}")
-                raise
-        else:
-            # Local embedding
-            embedding = self.model.encode(text)
-            # Pad or truncate to match OpenAI dimension (3072)
-            if len(embedding) < 3072:
-                # Pad with zeros
-                embedding = np.pad(embedding, (0, 3072 - len(embedding)), 'constant')
-            elif len(embedding) > 3072:
-                # Truncate
-                embedding = embedding[:3072]
-            return embedding.tolist()
+        try:
+            response = await self.client.embeddings.create(
+                model=self.model_version,
+                input=text
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            logger.error(f"OpenAI embedding error: {e}")
+            raise
     
     async def create_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Create embeddings for multiple texts."""
-        if self.backend == "openai":
-            try:
-                response = await self.client.embeddings.create(
-                    model=self.model_version,
-                    input=texts
-                )
-                return [item.embedding for item in response.data]
-            except Exception as e:
-                logger.error(f"OpenAI embedding error: {e}")
-                raise
-        else:
-            # Local embeddings
-            embeddings = []
-            for text in texts:
-                embedding = await self.create_embedding(text)
-                embeddings.append(embedding)
-            return embeddings
+        try:
+            response = await self.client.embeddings.create(
+                model=self.model_version,
+                input=texts
+            )
+            return [item.embedding for item in response.data]
+        except Exception as e:
+            logger.error(f"OpenAI embedding error: {e}")
+            raise
     
     def prepare_job_text(self, job_data: dict) -> str:
         """Prepare job data for embedding."""

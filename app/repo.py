@@ -624,3 +624,225 @@ class DatabaseRepository:
                 }
                 for row in rows
             ]
+
+    # Scanning Configuration Operations
+    async def get_active_scanning_configs(self) -> List[Dict[str, Any]]:
+        """Get all active scanning configurations"""
+        async with self.pool.acquire() as conn:
+            query = """
+                SELECT 
+                    config_id,
+                    config_name,
+                    description,
+                    target_skills,
+                    target_roles,
+                    seniority_levels,
+                    target_locations,
+                    languages,
+                    contract_durations,
+                    onsite_modes,
+                    total_matches_generated,
+                    successful_placements,
+                    last_match_score,
+                    performance_score,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM scanning_configs
+                WHERE is_active = true
+                ORDER BY performance_score DESC
+            """
+            rows = await conn.fetch(query)
+            return [dict(row) for row in rows]
+
+    async def get_all_scanning_configs(self) -> List[Dict[str, Any]]:
+        """Get all scanning configurations (active and inactive)"""
+        async with self.pool.acquire() as conn:
+            query = """
+                SELECT 
+                    config_id,
+                    config_name,
+                    description,
+                    target_skills,
+                    target_roles,
+                    seniority_levels,
+                    target_locations,
+                    languages,
+                    contract_durations,
+                    onsite_modes,
+                    total_matches_generated,
+                    successful_placements,
+                    last_match_score,
+                    performance_score,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM scanning_configs
+                ORDER BY performance_score DESC
+            """
+            rows = await conn.fetch(query)
+            return [dict(row) for row in rows]
+
+    async def get_scanning_config(self, config_id: UUID) -> Optional[Dict[str, Any]]:
+        """Get a specific scanning configuration by ID"""
+        async with self.pool.acquire() as conn:
+            query = """
+                SELECT 
+                    config_id,
+                    config_name,
+                    description,
+                    target_skills,
+                    target_roles,
+                    seniority_levels,
+                    target_locations,
+                    languages,
+                    contract_durations,
+                    onsite_modes,
+                    total_matches_generated,
+                    successful_placements,
+                    last_match_score,
+                    performance_score,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM scanning_configs
+                WHERE config_id = $1
+            """
+            row = await conn.fetchrow(query, config_id)
+            return dict(row) if row else None
+
+    async def get_source_config_overrides(self, config_id: UUID) -> List[Dict[str, Any]]:
+        """Get source-specific configuration overrides for a scanning config"""
+        async with self.pool.acquire() as conn:
+            query = """
+                SELECT 
+                    override_id,
+                    config_id,
+                    source_name,
+                    parameter_overrides,
+                    last_run_at,
+                    success_rate,
+                    avg_matches_per_run,
+                    is_enabled
+                FROM source_config_overrides
+                WHERE config_id = $1 AND is_enabled = true
+                ORDER BY source_name
+            """
+            rows = await conn.fetch(query, config_id)
+            return [dict(row) for row in rows]
+
+    async def log_config_performance(self, performance_data: Dict[str, Any]):
+        """Log performance metrics for a scanning configuration"""
+        async with self.pool.acquire() as conn:
+            query = """
+                INSERT INTO config_performance_log (
+                    config_id,
+                    source_name,
+                    test_date,
+                    jobs_found,
+                    matches_generated,
+                    quality_score,
+                    consultant_interest_rate,
+                    placement_rate,
+                    notes
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING log_id
+            """
+            await conn.fetchval(
+                query,
+                performance_data.get('config_id'),
+                performance_data.get('source_name'),
+                performance_data.get('test_date', datetime.now().date()),
+                performance_data.get('jobs_found', 0),
+                performance_data.get('matches_generated', 0),
+                performance_data.get('quality_score'),
+                performance_data.get('consultant_interest_rate'),
+                performance_data.get('placement_rate'),
+                performance_data.get('notes')
+            )
+
+    async def update_source_performance(self, config_id: UUID, source_name: str, performance_data: Dict[str, Any]):
+        """Update performance metrics for a specific source override"""
+        async with self.pool.acquire() as conn:
+            query = """
+                UPDATE source_config_overrides
+                SET 
+                    last_run_at = $3,
+                    success_rate = $4,
+                    avg_matches_per_run = $5
+                WHERE config_id = $1 AND source_name = $2
+            """
+            await conn.execute(
+                query,
+                config_id,
+                source_name,
+                performance_data.get('last_run_at', datetime.now()),
+                performance_data.get('success_rate'),
+                performance_data.get('avg_matches_per_run')
+            )
+
+    async def get_config_performance_history(self, config_id: UUID, days: int = 30) -> List[Dict[str, Any]]:
+        """Get performance history for a scanning configuration"""
+        async with self.pool.acquire() as conn:
+            query = """
+                SELECT 
+                    log_id,
+                    config_id,
+                    source_name,
+                    test_date,
+                    jobs_found,
+                    matches_generated,
+                    quality_score,
+                    consultant_interest_rate,
+                    placement_rate,
+                    notes,
+                    created_at
+                FROM config_performance_log
+                WHERE config_id = $1 
+                    AND test_date >= CURRENT_DATE - INTERVAL '%s days'
+                ORDER BY test_date DESC
+            """ % days
+            rows = await conn.fetch(query, config_id)
+            return [dict(row) for row in rows]
+
+    async def update_config_performance_score(self, config_id: UUID, performance_score: float):
+        """Update the overall performance score for a scanning configuration"""
+        async with self.pool.acquire() as conn:
+            query = """
+                UPDATE scanning_configs
+                SET 
+                    performance_score = $2,
+                    updated_at = now()
+                WHERE config_id = $1
+            """
+            await conn.execute(query, config_id, performance_score)
+
+    async def upsert_learning_parameter(self, param_name: str, param_value: str, effectiveness_score: float = 0.0, config_id: UUID = None):
+        """Insert or update a learning parameter"""
+        async with self.pool.acquire() as conn:
+            query = """
+                INSERT INTO learning_parameters (
+                    parameter_name,
+                    parameter_value,
+                    effectiveness_score,
+                    usage_count,
+                    last_used_at,
+                    learned_from_config_id
+                ) VALUES ($1, $2, $3, 1, now(), $4)
+                ON CONFLICT (parameter_name, parameter_value)
+                DO UPDATE SET 
+                    effectiveness_score = EXCLUDED.effectiveness_score,
+                    usage_count = learning_parameters.usage_count + 1,
+                    last_used_at = now(),
+                    learned_from_config_id = COALESCE(EXCLUDED.learned_from_config_id, learning_parameters.learned_from_config_id)
+                RETURNING param_id
+            """
+            return await conn.fetchval(query, param_name, param_value, effectiveness_score, config_id)
+
+    async def upsert_jobs(self, jobs: List[JobIn]) -> List[Job]:
+        """Bulk upsert multiple jobs"""
+        result_jobs = []
+        for job_in in jobs:
+            job = await self.upsert_job(job_in)
+            result_jobs.append(job)
+        return result_jobs

@@ -7,6 +7,8 @@ import logging
 
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import httpx
 
 from app.models import (
@@ -18,9 +20,10 @@ from app.repo import DatabaseRepository
 from app.embeddings import EmbeddingService
 from app.matching import MatchingService
 from app.reports import ReportingService
+from app.scheduler import ScannerScheduler
 from app.parse.html_parser import GenericHTMLParser
 from app.ingest.rss_ingester import RSSIngester
-from app.scrapers import BrainvilleScraper
+from app.scrapers import BrainvilleScraper, CinodeScraper
 from app.config import settings, SCRAPER_CONFIGS
 
 # Configure logging
@@ -32,12 +35,13 @@ db_repo: Optional[DatabaseRepository] = None
 embedding_service: Optional[EmbeddingService] = None
 matching_service: Optional[MatchingService] = None
 reporting_service: Optional[ReportingService] = None
+scanner_scheduler: Optional[ScannerScheduler] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    global db_repo, embedding_service, matching_service, reporting_service
+    global db_repo, embedding_service, matching_service, reporting_service, scanner_scheduler
     
     db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/consultant_matching")
     
@@ -48,11 +52,31 @@ async def lifespan(app: FastAPI):
     matching_service = MatchingService(db_repo, embedding_service)
     reporting_service = ReportingService(db_repo)
     
+    # Initialize and start scheduler
+    scanner_scheduler = ScannerScheduler(
+        db_repo=db_repo,
+        embedding_service=embedding_service,
+        matching_service=matching_service,
+        reporting_service=reporting_service
+    )
+    
+    # Start scheduler if enabled
+    scheduler_enabled = os.getenv("SCHEDULER_ENABLED", "true").lower() == "true"
+    if scheduler_enabled:
+        await scanner_scheduler.start()
+        logger.info("Scanner scheduler started")
+    else:
+        logger.info("Scanner scheduler disabled")
+    
     logger.info("Application started successfully")
     
     yield
     
     # Shutdown
+    if scanner_scheduler and scanner_scheduler.is_running:
+        await scanner_scheduler.stop()
+        logger.info("Scanner scheduler stopped")
+    
     if db_repo:
         await db_repo.close()
     logger.info("Application shutdown complete")
@@ -564,6 +588,156 @@ async def scrape_brainville(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/scrape/cinode")
+async def scrape_cinode(
+    background_tasks: BackgroundTasks,
+    db: DatabaseRepository = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service),
+    max_pages: Optional[int] = None
+):
+    """Manually trigger Cinode Market scraping."""
+    try:
+        async with CinodeScraper() as scraper:
+            if max_pages:
+                scraper.max_pages = max_pages
+            
+            # Scrape jobs
+            jobs = await scraper.scrape()
+            
+            # Save jobs and create embeddings
+            saved_jobs = []
+            for job_in in jobs:
+                # Handle company
+                if job_in.company:
+                    company = await db.get_or_create_company(job_in.company)
+                    job_in.company_id = company.company_id
+                
+                # Handle broker
+                if job_in.broker:
+                    broker = await db.get_or_create_broker(job_in.broker)
+                    job_in.broker_id = broker.broker_id
+                
+                # Save job
+                saved_job = await db.upsert_job(job_in)
+                saved_jobs.append(saved_job)
+                
+                # Create embedding in background
+                async def create_job_embedding(job_id, job_data):
+                    try:
+                        job_text = embeddings.prepare_job_text(job_data)
+                        embedding = await embeddings.create_embedding(job_text)
+                        await db.store_job_embedding(job_id, embedding)
+                    except Exception as e:
+                        logger.error(f"Error creating embedding for job {job_id}: {e}")
+                
+                background_tasks.add_task(
+                    create_job_embedding,
+                    saved_job.job_id,
+                    job_in.dict()
+                )
+            
+            # Log successful ingestion
+            await db.log_ingestion(
+                source="cinode",
+                status="completed",
+                jobs_found=len(jobs),
+                jobs_new=len(saved_jobs)
+            )
+            
+            return {
+                "status": "success",
+                "jobs_scraped": len(jobs),
+                "jobs_saved": len(saved_jobs),
+                "message": f"Successfully scraped {len(jobs)} jobs from Cinode Market"
+            }
+            
+    except Exception as e:
+        logger.error(f"Error scraping Cinode: {e}")
+        
+        # Log failed ingestion
+        await db.log_ingestion(
+            source="cinode",
+            status="failed",
+            error=str(e)
+        )
+        
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/ingest/jobs")
+async def ingest_jobs(
+    jobs_data: List[JobIn],
+    source: str,
+    background_tasks: BackgroundTasks,
+    db: DatabaseRepository = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service)
+):
+    """Generic endpoint to ingest multiple jobs from external sources."""
+    try:
+        saved_jobs = []
+        
+        for job_in in jobs_data:
+            # Set source if not already set
+            if not job_in.source:
+                job_in.source = source
+            
+            # Handle company
+            if job_in.company:
+                company = await db.get_or_create_company(job_in.company)
+                job_in.company_id = company.company_id
+            
+            # Handle broker  
+            if job_in.broker:
+                broker = await db.get_or_create_broker(job_in.broker)
+                job_in.broker_id = broker.broker_id
+            
+            # Save job
+            saved_job = await db.upsert_job(job_in)
+            saved_jobs.append(saved_job)
+            
+            # Create embedding in background
+            async def create_job_embedding(job_id, job_data):
+                try:
+                    job_text = embeddings.prepare_job_text(job_data)
+                    embedding = await embeddings.create_embedding(job_text)
+                    await db.store_job_embedding(job_id, embedding)
+                except Exception as e:
+                    logger.error(f"Error creating embedding for job {job_id}: {e}")
+            
+            background_tasks.add_task(
+                create_job_embedding,
+                saved_job.job_id,
+                job_in.dict()
+            )
+        
+        # Log successful ingestion
+        await db.log_ingestion(
+            source=source,
+            status="completed",
+            jobs_found=len(jobs_data),
+            jobs_new=len(saved_jobs)
+        )
+        
+        return {
+            "status": "success",
+            "jobs_received": len(jobs_data),
+            "jobs_saved": len(saved_jobs),
+            "message": f"Successfully ingested {len(saved_jobs)} jobs from {source}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error ingesting jobs from {source}: {e}")
+        
+        # Log failed ingestion
+        await db.log_ingestion(
+            source=source,
+            status="failed",
+            error=str(e)
+        )
+        
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/scrape/status")
 async def get_scraper_status(
     db: DatabaseRepository = Depends(get_db)
@@ -676,3 +850,76 @@ async def scrape_all_sources(
         "results": results,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+
+
+# Scheduler Management Endpoints
+@app.get("/scheduler/status")
+async def get_scheduler_status():
+    """Get current scheduler status and next run times."""
+    if not scanner_scheduler:
+        return {"status": "not_initialized"}
+    
+    return scanner_scheduler.get_scheduler_status()
+
+
+@app.post("/scheduler/scan/trigger")
+async def trigger_manual_scan(
+    config_id: Optional[UUID] = None,
+    background_tasks: BackgroundTasks = None
+):
+    """Manually trigger a scan for testing purposes."""
+    if not scanner_scheduler:
+        raise HTTPException(status_code=503, detail="Scheduler not initialized")
+    
+    try:
+        if background_tasks:
+            background_tasks.add_task(scanner_scheduler.trigger_scan_now, config_id)
+            return {"status": "scan_triggered", "config_id": config_id}
+        else:
+            await scanner_scheduler.trigger_scan_now(config_id)
+            return {"status": "scan_completed", "config_id": config_id}
+    except Exception as e:
+        logger.error(f"Manual scan failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")
+
+
+@app.post("/scheduler/start")
+async def start_scheduler():
+    """Start the scheduler (admin only)."""
+    if not scanner_scheduler:
+        raise HTTPException(status_code=503, detail="Scheduler not initialized")
+    
+    if scanner_scheduler.is_running:
+        return {"status": "already_running"}
+    
+    try:
+        await scanner_scheduler.start()
+        return {"status": "started"}
+    except Exception as e:
+        logger.error(f"Failed to start scheduler: {e}")
+        raise HTTPException(status_code=500, detail=f"Start failed: {str(e)}")
+
+
+@app.post("/scheduler/stop")
+async def stop_scheduler():
+    """Stop the scheduler (admin only)."""
+    if not scanner_scheduler:
+        raise HTTPException(status_code=503, detail="Scheduler not initialized")
+    
+    if not scanner_scheduler.is_running:
+        return {"status": "already_stopped"}
+    
+    try:
+        await scanner_scheduler.stop()
+        return {"status": "stopped"}
+    except Exception as e:
+        logger.error(f"Failed to stop scheduler: {e}")
+        raise HTTPException(status_code=500, detail=f"Stop failed: {str(e)}")
+
+
+# Include frontend router
+from app.frontend import router as frontend_router
+app.include_router(frontend_router)
+
+# Mount static files if needed
+# app.mount("/static", StaticFiles(directory="app/static"), name="static")

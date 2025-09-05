@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(scp:*)",
+      "Bash(tar:*)",
+      "Bash(ssh:*)",
+      "Bash(ping:*)",
+      "Bash(git add:*)",
+      "Bash(git restore:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(python3:*)",
+      "Bash(open:*)",
+      "Bash(grep:*)",
+      "Bash(pip3 install:*)",
+      "Read(/Users/olahesselroth/.config/claude/**)",
+      "Bash(echo $SHELL)",
+      "Read(/Users/olahesselroth/**)",
+      "Bash(source:*)",
+      "mcp__ide__getDiagnostics",
+      "Read(/Users/olahesselroth/.config/claude/**)",
+      "Read(/Users/olahesselroth/**)",
+      "Bash(echo $SQLITE_DB)",
+      "Read(/Users/olahesselroth/.config/claude/**)",
+      "Bash(npx @playwright/mcp@latest:*)",
+      "Bash(npx -y @upstash/context7-mcp:*)",
+      "Bash(mv:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

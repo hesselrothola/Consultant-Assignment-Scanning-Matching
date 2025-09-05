@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Consultants{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 sm:px-6">
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">Consultants</h2>
+            <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">Manage consultant profiles</p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <a href="/consultant/consultants/add"
+               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Consultant
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="bg-white shadow sm:rounded-lg mb-6">
+    <div class="px-4 py-3 sm:px-6">
+        <form method="get" action="/consultant/consultants" class="flex flex-wrap gap-4">
+            <div>
+                <label for="active" class="block text-sm font-medium text-gray-700">Status</label>
+                <select id="active" name="active" 
+                        class="mt-1 block pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <option value="true" {% if active %}selected{% endif %}>Active</option>
+                    <option value="false" {% if not active %}selected{% endif %}>Inactive</option>
+                    <option value="">All</option>
+                </select>
+            </div>
+            <div>
+                <label for="limit" class="block text-sm font-medium text-gray-700">Show</label>
+                <select id="limit" name="limit" 
+                        class="mt-1 block pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <option value="20" {% if limit == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if limit == 100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Consultants List -->
+<div class="bg-white shadow sm:rounded-lg">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+                <tr>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Role
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Seniority
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Skills
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Location
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for consultant in consultants %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {{ consultant.name }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ consultant.role }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                            {{ consultant.seniority }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        <div class="flex flex-wrap gap-1">
+                            {% for skill in consultant.skills[:3] %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                {{ skill }}
+                            </span>
+                            {% endfor %}
+                            {% if consultant.skills|length > 3 %}
+                            <span class="text-xs text-gray-400">+{{ consultant.skills|length - 3 }} more</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ consultant.location_city }}
+                        <span class="text-gray-400">
+                            ({{ consultant.onsite_mode }})
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if consultant.active %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            Active
+                        </span>
+                        {% else %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                            Inactive
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="/consultant/matches?consultant_id={{ consultant.consultant_id }}" 
+                           class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            View Matches
+                        </a>
+                        <button type="button"
+                                hx-post="/consultant/matches/generate/consultant/{{ consultant.consultant_id }}"
+                                hx-target="#match-result-{{ consultant.consultant_id }}"
+                                class="text-green-600 hover:text-green-900">
+                            Generate Matches
+                        </button>
+                    </td>
+                </tr>
+                <tr id="match-result-{{ consultant.consultant_id }}" class="hidden"></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

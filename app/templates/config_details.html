@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration Details{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 sm:px-6">
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">{{ config.config_name }}</h2>
+            <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">Detailed configuration and performance metrics</p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                Edit Configuration
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration Overview -->
+<div class="bg-white shadow sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Overview</h3>
+        
+        <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Status</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                    {% if config.is_active %}
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        Active
+                    </span>
+                    {% else %}
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                        Inactive
+                    </span>
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Scan Frequency</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ config.scan_frequency }}</dd>
+            </div>
+            
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Performance Score</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                    {% if config.performance_score is not none %}
+                        {{ (config.performance_score * 100)|round|int }}%
+                    {% else %}
+                        No data available
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Created</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                    {{ config.created_at.strftime('%Y-%m-%d %H:%M') if config.created_at else 'Unknown' }}
+                </dd>
+            </div>
+            
+            <div class="sm:col-span-2">
+                <dt class="text-sm font-medium text-gray-500">Enabled Sources</dt>
+                <dd class="mt-1">
+                    {% if config.enabled_sources %}
+                    <div class="flex flex-wrap gap-2">
+                        {% for source in config.enabled_sources %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            {{ source }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <span class="text-sm text-gray-500">No sources configured</span>
+                    {% endif %}
+                </dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<!-- Source Overrides -->
+<div class="bg-white shadow sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Source Overrides</h3>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Source
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Max Pages
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Rate Limit
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Filters
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Performance
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for override in overrides %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ override.source_name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ override.max_pages or 'Default' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ override.rate_limit_delay or 'Default' }}s
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500">
+                            {% if override.filters %}
+                                {% for key, value in override.filters.items() %}
+                                <div class="text-xs">{{ key }}: {{ value }}</div>
+                                {% endfor %}
+                            {% else %}
+                            None
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if override.performance_score is not none %}
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-8 w-8">
+                                    <div class="h-8 w-8 rounded-full flex items-center justify-center text-xs font-medium
+                                               {% if override.performance_score >= 0.8 %}bg-green-100 text-green-800
+                                               {% elif override.performance_score >= 0.6 %}bg-yellow-100 text-yellow-800
+                                               {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ (override.performance_score * 100)|round|int }}%
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-gray-400">No data</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                            No source overrides configured. Using default settings for all sources.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Performance History -->
+<div class="bg-white shadow sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Performance History (Last 7 Days)</h3>
+        
+        {% if performance %}
+        <div class="space-y-4">
+            {% for perf in performance %}
+            <div class="border rounded-lg p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="text-sm font-medium text-gray-900">
+                        {{ perf.logged_at.strftime('%Y-%m-%d %H:%M') }}
+                    </h4>
+                    <span class="text-sm text-gray-500">{{ perf.source_name or 'All Sources' }}</span>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-500">Jobs Found:</span>
+                        <span class="font-medium">{{ perf.jobs_found or 0 }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Success Rate:</span>
+                        <span class="font-medium">{{ (perf.success_rate * 100)|round|int if perf.success_rate else 0 }}%</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Avg Time:</span>
+                        <span class="font-medium">{{ perf.avg_response_time|round(2) if perf.avg_response_time else 0 }}s</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Errors:</span>
+                        <span class="font-medium">{{ perf.error_count or 0 }}</span>
+                    </div>
+                </div>
+                
+                {% if perf.error_messages %}
+                <div class="mt-2">
+                    <span class="text-xs text-red-600">Errors: {{ perf.error_messages|join(', ') }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500">No performance data available for this configuration.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

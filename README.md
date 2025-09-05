@@ -1,207 +1,206 @@
-# Consultant Assignment Matching System
+# Enterprise Consultant Assignment Matching System
 
-An intelligent system for ingesting Swedish consulting assignments and matching them with consultants using embeddings and multi-factor scoring.
+AI-powered platform for matching **senior-level consultants** (C-level, architects, transformation leaders) with executive assignments in the Swedish consulting market.
+
+## Target Consultant Profiles
+
+This system is optimized for **executive and senior technical consultants** with 10-20+ years experience:
+- **Management**: Interim CTO/CIO, Digital Transformation Leaders, Change Managers
+- **Architecture**: Enterprise Architects, Business Architects, Solution Architects  
+- **Leadership**: Program Managers, R&D Directors, Head of Development
+- **Specialists**: Senior Data Architects, BI Strategy Leads, Agile Coaches
+
+Typical rate expectations: **1,200-1,800 SEK/hour**
 
 ## Features
 
-- **Multi-source ingestion**: RSS feeds, HTML parsing, API integration
-- **Web Scraping**: ✅ Brainville scraper implemented with rate limiting
-- **Smart matching**: Embeddings-based similarity with weighted scoring
-- **PostgreSQL + pgvector**: Efficient vector similarity search
-- **FastAPI backend**: Modern async Python API
-- **n8n integration**: Ready-to-use webhook endpoints
-- **Automated reporting**: Daily/weekly reports for Slack/Teams
-
-## Architecture
-
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Sources   │────▶│   FastAPI   │────▶│ PostgreSQL  │
-│ RSS/HTML/API│     │   Backend   │     │  + pgvector │
-└─────────────┘     └─────────────┘     └─────────────┘
-                           │
-                    ┌──────┴──────┐
-                    │  Embeddings │
-                    │   Service   │
-                    └─────────────┘
-```
+- **Multi-source job ingestion** from executive search firms and enterprise clients
+- **Authenticated scraping** via Playwright MCP for Cinode, LinkedIn premium jobs
+- **AI-powered matching** optimized for strategic/leadership language
+- **Seniority filtering** to exclude junior positions automatically
+- **Executive search focus** targeting high-value transformation assignments
+- **Automated reports** highlighting C-level and architecture opportunities
+- **Company intelligence** tracking enterprise clients and executive recruiters
 
 ## Quick Start
 
-### Prerequisites
-
-- Docker & Docker Compose
-- Python 3.11+ (for local development)
-- OpenAI API key (for OpenAI embeddings) or use local embeddings
-
-### Setup
-
-1. Clone the repository:
 ```bash
-git clone <repo-url>
-cd consultant-assignment-matching
-```
+# Clone the repository
+git clone https://github.com/yourusername/consultant-matching.git
+cd consultant-matching
 
-2. Set environment variables:
-```bash
-# Create .env file
-cat > .env << EOF
-EMBEDDING_BACKEND=openai  # or "local" for sentence-transformers
-OPENAI_API_KEY=your-api-key-here  # if using OpenAI
-DATABASE_URL=postgresql://postgres:postgres@localhost:5433/consultant_matching
-EOF
-```
+# Copy environment configuration
+cp .env.example .env
+# Edit .env to set:
+#   - OPENAI_API_KEY (for embeddings)
+#   - CINODE_USERNAME / CINODE_PASSWORD (for authenticated scraping)
+#   - PLAYWRIGHT_ENABLED=true (for JavaScript sites)
 
-3. Start services with Docker:
-```bash
+# Start all services including Playwright MCP
 docker-compose up -d
+
+# Add senior consultant profiles
+docker-compose exec api python scripts/add_senior_consultants.py
+
+# Test Cinode scraper for executive assignments
+docker-compose exec api python scripts/test_scraper.py --scraper cinode
 ```
-
-4. Seed the database with sample data:
-```bash
-# With Docker
-docker-compose exec api python scripts/dev_seed.py
-
-# Or locally
-pip install -r requirements.txt
-python scripts/dev_seed.py
-```
-
-5. Access the API:
-- API: http://localhost:8001
-- Interactive docs: http://localhost:8001/docs
-- Database: localhost:5433 (user: postgres, pass: postgres)
 
 ## API Endpoints
 
-### Web Scraping
+### Executive Jobs
+- `POST /api/jobs` - Ingest C-level/architect positions
+- `GET /api/jobs?seniority=senior` - List senior-level assignments
+- `GET /api/jobs/{id}` - Get assignment details with rate expectations
 
-**Scrape Brainville**
-```bash
-curl -X POST http://localhost:8001/scrape/brainville
+### Senior Consultants  
+- `POST /api/consultants` - Add enterprise consultant profile
+- `GET /api/consultants?seniority=senior` - List executive consultants
+- `GET /api/consultants/{id}` - Get consultant with certifications/MBA
+
+### Strategic Matching
+- `POST /api/match/job/{job_id}` - Match executives to transformation roles
+- `GET /api/matches/job/{job_id}?min_score=0.7` - High-confidence matches only
+
+### Executive Reports
+- `POST /api/reports/daily` - Daily C-level opportunity scan
+- `POST /api/reports/weekly` - Weekly executive market analysis
+- `GET /api/reports/prospects` - Top enterprise clients hiring
+
+### Authenticated Scrapers
+- `POST /api/scrapers/cinode/run` - Scan Cinode premium assignments
+- `POST /api/scrapers/linkedin/run` - Scan LinkedIn executive positions
+- `GET /api/scrapers/status` - Check scraper authentication status
+
+## Web UI Dashboard
+
+Access the full-featured web dashboard at: **http://localhost:8001/consultant/**
+
+- **Dashboard**: Executive assignment overview and analytics
+- **Jobs**: Browse and filter senior-level positions
+- **Consultants**: Manage enterprise consultant profiles
+- **Matches**: AI-powered matching with detailed scoring
+- **Scanner**: Control authenticated scrapers
+- **Reports**: Daily/weekly executive market analysis
+- **Configuration**: System settings and scraper credentials
+
+## Configuration
+
+### Environment Variables
+
+```env
+# Embedding Service (optimized for strategic language)
+EMBEDDING_BACKEND=openai  # Better for executive terminology
+OPENAI_API_KEY=your-api-key-here
+
+# Database
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/consultant_matching
+
+# Authenticated Scraping (Executive Platforms)
+PLAYWRIGHT_ENABLED=true
+CINODE_USERNAME=your-email@company.com  
+CINODE_PASSWORD=your-password
+LINKEDIN_USERNAME=premium-account@company.com
+LINKEDIN_PASSWORD=your-password
+
+# Redis (for caching executive search results)
+REDIS_URL=redis://localhost:6380
 ```
 
-**Scrape All Enabled Sources**
-```bash
-curl -X POST http://localhost:8001/scrape/all
+### Senior Consultant Matching Weights
+
+The system uses specialized weights for executive matching:
+
+```python
+{
+    "semantic_similarity": 0.35,  # Strategic language understanding
+    "seniority_match": 0.25,      # Must be senior/C-level
+    "role_compatibility": 0.15,   # Architecture/management fit
+    "industry_experience": 0.10,  # Domain expertise bonus
+    "leadership_scope": 0.10,     # Team/budget responsibility
+    "location_flexibility": 0.05  # Less critical for executives
+}
 ```
 
-**Check Scraper Status**
-```bash
-curl http://localhost:8001/scrape/status
+## Architecture
+
+The system uses enterprise-grade architecture with authenticated scraping:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+│   n8n       │────▶│   FastAPI    │────▶│  PostgreSQL  │
+│  Workflows  │     │   Backend    │     │   + pgvector │
+└─────────────┘     └──────────────┘     └──────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │  Services:   │
+                    ├──────────────┤
+                    │ OpenAI API   │ (Executive language embeddings)
+                    │ Playwright   │ (Cinode/LinkedIn auth)
+                    │ MCP Server   │ (Browser automation)
+                    └──────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │ Data Sources │
+                    ├──────────────┤
+                    │ Cinode       │ (Premium assignments)
+                    │ LinkedIn     │ (Executive positions)
+                    │ Brainville   │ (Management consulting)
+                    │ eWork        │ (Senior desk)
+                    └──────────────┘
 ```
 
-### Job Management
+### Playwright MCP Integration
 
-**Upsert Single Job**
-```bash
-curl -X POST http://localhost:8001/jobs/upsert \
-  -H "Content-Type: application/json" \
-  -d '{
-    "source": "manual",
-    "title": "Senior Python Developer",
-    "company": "TechCorp AB",
-    "location": "Stockholm",
-    "skills": ["Python", "FastAPI", "PostgreSQL"],
-    "language_requirements": ["Swedish", "English"]
-  }'
-```
+For authenticated sites requiring JavaScript rendering:
 
-**Bulk Upsert Jobs**
-```bash
-curl -X POST http://localhost:8001/jobs/bulk \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jobs": [
-      {"source": "rss", "title": "DevOps Engineer", ...},
-      {"source": "rss", "title": "Frontend Developer", ...}
-    ]
-  }'
-```
+1. **Playwright MCP Server** runs in Docker with Chrome
+2. **BasePlaywrightScraper** provides browser automation interface
+3. **CinodeScraper** handles login and premium job extraction
+4. **SSE Communication** for real-time browser control
 
-### Consultant Management
+## Typical Consultant Profile Example
 
-**Upsert Consultant**
-```bash
-curl -X POST http://localhost:8001/consultants/upsert \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Anna Andersson",
-    "email": "anna@example.com",
-    "title": "Senior Developer",
-    "skills": ["Python", "React", "PostgreSQL"],
-    "languages": ["Swedish", "English"],
-    "location": "Stockholm"
-  }'
-```
+**Magnus Andersson** - Enterprise Architect / Business Architect
+- 20+ years experience
+- Former CTO, Interim CTO multiple companies
+- Executive MBA
+- Expertise: Digital Strategy, Enterprise Architecture, Change Management
+- Industries: Healthcare (Karolinska), Finance (Postgirot), AgriTech (DeLaval)
+- Languages: Swedish, English, Danish, Norwegian
+- Rate: 1,500-1,800 SEK/hour
 
-### Matching
+## Target Assignment Examples
 
-**Run Matching Algorithm**
-```bash
-curl -X POST http://localhost:8001/match/run \
-  -H "Content-Type: application/json" \
-  -d '{
-    "min_score": 0.6,
-    "max_results": 5
-  }'
-```
+✅ **Good Matches:**
+- "Interim CTO för digital transformation" (6-12 months)
+- "Enterprise Architect för molnmigration" (12+ months)  
+- "Programledare strategisk digitalisering" (9 months)
+- "Business Architect för fusionsintegration" (6 months)
 
-### Reports
-
-**Get Daily Report**
-```bash
-# JSON format
-curl http://localhost:8001/reports/daily
-
-# Slack format
-curl http://localhost:8001/reports/daily/slack
-
-# Teams format
-curl http://localhost:8001/reports/weekly/teams
-```
-
-### Ingestion
-
-**Ingest from RSS**
-```bash
-curl -X POST http://localhost:8001/ingest/rss \
-  -H "Content-Type: application/json" \
-  -d '{
-    "feed_url": "https://example.com/jobs.rss",
-    "source_name": "example_rss"
-  }'
-```
-
-**Parse HTML**
-```bash
-curl -X POST http://localhost:8001/parse/custom_source \
-  -H "Content-Type: application/json" \
-  -d '{
-    "html_content": "<html>...</html>"
-  }'
-```
+❌ **Filtered Out:**
+- "Junior .NET utvecklare" 
+- "React developer 2-5 års erfarenhet"
+- "IT Support specialist"
+- "Scrum Master första uppdraget"
 
 ## n8n Integration
 
 ### Webhook Endpoints
 
-The system provides dedicated n8n webhook endpoints for easy integration:
+The system provides dedicated n8n webhook endpoints for workflow automation:
 
 **Job Ingestion Webhook**
 ```json
 POST http://localhost:8001/n8n/ingest
 {
   "source": "n8n_workflow",
-  "jobs": [
-    {
-      "title": "Python Developer",
-      "company": "Tech AB",
-      "location": "Stockholm",
-      "description": "...",
-      "skills": ["Python", "Django"]
-    }
-  ]
+  "jobs": [{
+    "title": "Interim CTO",
+    "company": "Enterprise AB",
+    "seniority": "senior",
+    "min_years_experience": 15
+  }]
 }
 ```
 
@@ -211,185 +210,67 @@ POST http://localhost:8001/n8n/match
 {
   "job_ids": ["uuid1", "uuid2"],
   "min_score": 0.7,
-  "max_results": 3
+  "seniority_filter": "senior"
 }
 ```
 
-### n8n Workflow Examples
-
-**Daily Ingestion Workflow**
-1. Schedule Trigger (daily at 9 AM)
-2. HTTP Request to fetch job listings
-3. Transform data to match schema
-4. POST to `/n8n/ingest`
-5. POST to `/n8n/match` for new jobs
-6. Send results to Slack/Teams
-
-**RSS Feed Monitor**
-1. RSS Feed Trigger
-2. Transform RSS items
-3. POST to `/n8n/ingest`
-4. If new jobs found, trigger matching
-5. Format and send notifications
-
-## Matching Algorithm
-
-The system uses a weighted multi-factor matching approach:
-
-| Factor | Weight | Description |
-|--------|--------|-------------|
-| Cosine Similarity | 45% | Embedding-based semantic similarity |
-| Skills Match | 25% | Direct and fuzzy skill matching |
-| Role Match | 15% | Seniority level compatibility |
-| Language Match | 10% | Language requirements fulfillment |
-| Geographic Match | 5% | Location proximity |
-
-### Scoring Details
-
-- **Cosine Similarity**: Uses OpenAI `text-embedding-3-large` or local sentence-transformers
-- **Skills Match**: Exact matches get full score, fuzzy matches (>80% similarity) get partial credit
-- **Role Match**: Compares seniority levels (Junior/Mid/Senior) with experience years
-- **Language Match**: Percentage of required languages the consultant speaks
-- **Geographic Match**: Same city (100%), same region (70%), remote option (60%)
-
-## Database Schema
-
-Key tables:
-- `jobs`: Assignment listings with metadata
-- `consultants`: Consultant profiles
-- `job_embeddings`: Vector embeddings for jobs (3072 dimensions)
-- `consultant_embeddings`: Vector embeddings for consultants
-- `job_consultant_matches`: Match results with scores and reasons
-- `ingestion_logs`: Track ingestion runs
-
 ## Development
 
-### Local Setup
-
+### Testing Scrapers
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Test connectivity to all scraping targets
+python scripts/test_scraper.py --scraper connectivity
 
-# Set up pre-commit hooks (optional)
-pip install pre-commit
-pre-commit install
+# Test Brainville scraper (saves JSON output)
+python scripts/test_scraper.py --scraper brainville
 
-# Run locally
-uvicorn app.main:app --reload
+# Test Cinode authenticated scraper
+python scripts/test_scraper.py --scraper cinode
+
+# Test all scrapers
+python scripts/test_scraper.py --scraper all --verbose
 ```
 
-### Testing
-
+### Database Management
 ```bash
-# Test web scrapers
-python scripts/test_scraper.py --scraper connectivity  # Test site connectivity
-python scripts/test_scraper.py --scraper brainville    # Test Brainville scraper
-python scripts/test_scraper.py --scraper all          # Test all scrapers
+# Access PostgreSQL
+docker-compose exec postgres psql -U postgres -d consultant_matching
 
-# Run tests (when implemented)
-pytest tests/
+# Run schema migrations
+docker-compose exec postgres psql -U postgres -d consultant_matching < db/schema.sql
 
-# With coverage
-pytest --cov=app tests/
+# Backup database
+docker-compose exec postgres pg_dump -U postgres consultant_matching > backup.sql
 ```
-
-### Adding New Ingestion Sources
-
-1. Create new ingester in `app/ingest/`:
-```python
-from app.ingest.base import BaseIngester
-
-class CustomIngester(BaseIngester):
-    async def fetch_jobs(self) -> List[JobIn]:
-        # Implementation
-        pass
-```
-
-2. Add parsing logic in `app/parse/` if needed
-
-3. Create API endpoint in `app/main.py`
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:postgres@localhost:5433/consultant_matching` |
-| `EMBEDDING_BACKEND` | `openai` or `local` | `openai` |
-| `OPENAI_API_KEY` | OpenAI API key (if using OpenAI) | - |
-| `REDIS_URL` | Redis connection (optional) | `redis://localhost:6380` |
-
-### Docker Compose Override
-
-For production settings, create `docker-compose.override.yml`:
-```yaml
-version: '3.8'
-services:
-  api:
-    environment:
-      - EMBEDDING_BACKEND=local
-    restart: always
-```
-
-## Monitoring
-
-### Health Check
-```bash
-curl http://localhost:8001/health
-```
-
-### Logs
-```bash
-# API logs
-docker-compose logs -f api
-
-# Database logs
-docker-compose logs -f postgres
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Database connection failed**
-   - Ensure PostgreSQL is running: `docker-compose ps`
-   - Check credentials in DATABASE_URL
-
-2. **Embedding creation slow**
-   - Consider using local embeddings instead of OpenAI
-   - Set `EMBEDDING_BACKEND=local`
-
-3. **Out of memory with local embeddings**
-   - Sentence-transformers models can be memory intensive
-   - Use OpenAI embeddings or reduce batch sizes
 
 ## Implementation Status
 
 ### ✅ Completed Components
 - Core database schema with PostgreSQL + pgvector
-- FastAPI backend with all basic endpoints
-- Dual embedding service (OpenAI/local)
-- Weighted matching algorithm
-- **Brainville web scraper with rate limiting** *(NEW)*
-- Scraper API endpoints and testing tools *(NEW)*
-- Configuration system for all settings *(NEW)*
+- FastAPI backend with executive-focused endpoints
+- Web UI dashboard with Tailwind CSS + HTMX
+- Dual embedding service optimized for strategic language
+- Weighted matching algorithm for senior profiles
+- Brainville web scraper with rate limiting
+- Playwright MCP integration for authenticated sites
+- Cinode scraper with login capability
+- Configuration system for Swedish market
 
 ### 🚧 In Progress
-See [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) for the detailed roadmap:
+See [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) for roadmap:
 
-1. **Data Ingestion**: ✅ Brainville | ⏳ Cinode, LinkedIn scrapers
-2. **Automation**: Add scheduling and daily scanning at 07:00
-3. **Enhanced Matching**: Improve analytics and scoring
-4. **User Interface**: Admin dashboard and filters
-5. **Production**: Monitoring, security, and hardening
+1. **Data Ingestion**: ✅ Brainville, Cinode | ⏳ LinkedIn scrapers
+2. **Automation**: Add APScheduler for daily 07:00 scanning
+3. **Enhanced Matching**: Improve executive scoring algorithms
+4. **Notifications**: Slack/Teams integration for reports
+5. **Production**: Security hardening and monitoring
 
 ### 📋 Next Priority Tasks
-- Implement APScheduler for automated daily scanning
-- Add Cinode marketplace scraper
-- Create Slack/Teams notification service
-- Implement LinkedIn scraper (with authentication handling)
-- Add admin dashboard for filtering assignments
+- Implement automated daily scanning at 07:00
+- Add LinkedIn premium job scraper
+- Create Slack/Teams notification delivery
+- Add trend analysis for executive market
+- Implement company prospect scoring
 
 ## License
 

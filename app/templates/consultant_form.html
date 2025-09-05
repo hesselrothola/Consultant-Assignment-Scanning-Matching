@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Add Consultant{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 sm:px-6">
+    <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">Add New Consultant</h2>
+    <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">Create a new consultant profile</p>
+</div>
+
+<div class="bg-white shadow sm:rounded-lg">
+    <form method="post" action="/consultant/consultants/add" class="space-y-6 px-4 py-5 sm:p-6">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <!-- Name -->
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700">
+                    Full Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="name" id="name" required
+                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                       placeholder="Erik Andersson">
+            </div>
+
+            <!-- Role -->
+            <div>
+                <label for="role" class="block text-sm font-medium text-gray-700">
+                    Role/Title <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="role" id="role" required
+                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                       placeholder="Senior Full Stack Developer">
+            </div>
+
+            <!-- Seniority -->
+            <div>
+                <label for="seniority" class="block text-sm font-medium text-gray-700">
+                    Seniority Level <span class="text-red-500">*</span>
+                </label>
+                <select id="seniority" name="seniority" required
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <option value="">Select level</option>
+                    <option value="Junior">Junior</option>
+                    <option value="Medior">Medior</option>
+                    <option value="Senior">Senior</option>
+                    <option value="Expert">Expert</option>
+                    <option value="Lead">Lead</option>
+                    <option value="Architect">Architect</option>
+                </select>
+            </div>
+
+            <!-- Work Mode -->
+            <div>
+                <label for="onsite_mode" class="block text-sm font-medium text-gray-700">
+                    Work Mode Preference <span class="text-red-500">*</span>
+                </label>
+                <select id="onsite_mode" name="onsite_mode" required
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <option value="">Select mode</option>
+                    <option value="onsite">Onsite</option>
+                    <option value="remote">Remote</option>
+                    <option value="hybrid">Hybrid</option>
+                </select>
+            </div>
+
+            <!-- Location City -->
+            <div>
+                <label for="location_city" class="block text-sm font-medium text-gray-700">
+                    City <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="location_city" id="location_city" required
+                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                       placeholder="Stockholm" list="cities">
+                <datalist id="cities">
+                    <option value="Stockholm">
+                    <option value="Göteborg">
+                    <option value="Malmö">
+                    <option value="Uppsala">
+                    <option value="Västerås">
+                    <option value="Örebro">
+                    <option value="Linköping">
+                    <option value="Helsingborg">
+                    <option value="Jönköping">
+                    <option value="Norrköping">
+                </datalist>
+            </div>
+
+            <!-- Location Country -->
+            <div>
+                <label for="location_country" class="block text-sm font-medium text-gray-700">
+                    Country
+                </label>
+                <input type="text" name="location_country" id="location_country" value="Sweden"
+                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+            </div>
+        </div>
+
+        <!-- Skills -->
+        <div>
+            <label for="skills" class="block text-sm font-medium text-gray-700">
+                Skills <span class="text-red-500">*</span>
+                <span class="text-xs text-gray-500">(comma-separated)</span>
+            </label>
+            <input type="text" name="skills" id="skills" required
+                   class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                   placeholder="Python, React, PostgreSQL, AWS, Docker">
+            <p class="mt-1 text-xs text-gray-500">Enter technical skills separated by commas</p>
+        </div>
+
+        <!-- Languages -->
+        <div>
+            <label for="languages" class="block text-sm font-medium text-gray-700">
+                Languages <span class="text-red-500">*</span>
+                <span class="text-xs text-gray-500">(comma-separated)</span>
+            </label>
+            <input type="text" name="languages" id="languages" required
+                   class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                   placeholder="Svenska, English" value="Svenska, English">
+        </div>
+
+        <!-- Notes -->
+        <div>
+            <label for="notes" class="block text-sm font-medium text-gray-700">
+                Additional Notes
+            </label>
+            <textarea id="notes" name="notes" rows="4"
+                      class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                      placeholder="Any additional information about experience, preferences, certifications, etc."></textarea>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-3">
+            <a href="/consultant/consultants"
+               class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Add Consultant
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-suggest common skills
+    const skillSuggestions = [
+        'Python', 'Java', 'C#', '.NET', 'JavaScript', 'TypeScript',
+        'React', 'Angular', 'Vue.js', 'Node.js',
+        'SQL', 'PostgreSQL', 'MongoDB', 'Redis',
+        'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP',
+        'DevOps', 'CI/CD', 'Terraform', 'Jenkins',
+        'SAP', 'Power BI', 'Dynamics 365', 'SharePoint',
+        'Scrum', 'Agile', 'REST', 'GraphQL', 'Microservices'
+    ];
+
+    // You could implement autocomplete functionality here
+</script>
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Scanner Control{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 sm:px-6">
+    <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">Scanner Control</h2>
+    <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">Manage automated scanning and view logs</p>
+</div>
+
+<!-- Scanner Status -->
+<div class="bg-white shadow sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:p-6">
+        <div class="sm:flex sm:items-start sm:justify-between">
+            <div>
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Scheduler Status</h3>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Current status: 
+                        {% if scheduler_status == "running" %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Running
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Stopped
+                        </span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="mt-5 sm:mt-0 sm:ml-6 sm:flex-shrink-0 sm:flex sm:items-center">
+                {% if scheduler_status == "running" %}
+                <button type="button"
+                        hx-post="/api/scheduler/stop"
+                        hx-target="#scheduler-result"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                    Stop Scheduler
+                </button>
+                {% else %}
+                <button type="button"
+                        hx-post="/api/scheduler/start"
+                        hx-target="#scheduler-result"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                    Start Scheduler
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        <div id="scheduler-result" class="mt-4"></div>
+    </div>
+</div>
+
+<!-- Scheduled Jobs -->
+<div class="bg-white shadow sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Scheduled Jobs</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Job Name
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Schedule
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Next Run
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for job in jobs %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ job.name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ job.trigger }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ job.next_run_time }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button type="button"
+                                    hx-post="/api/scheduler/job/{{ job.id }}/run"
+                                    hx-target="#job-result-{{ job.id }}"
+                                    class="text-indigo-600 hover:text-indigo-900">
+                                Run Now
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="job-result-{{ job.id }}" class="hidden"></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Scan -->
+<div class="bg-white shadow sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg font-medium leading-6 text-gray-900">Manual Scan</h3>
+        <div class="mt-2 max-w-xl text-sm text-gray-500">
+            <p>Trigger a manual scan with specific configuration or use default.</p>
+        </div>
+        <form hx-post="/consultant/scanner/trigger" hx-target="#scan-result" class="mt-5">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="config_id" class="block text-sm font-medium text-gray-700">
+                        Configuration (optional)
+                    </label>
+                    <select id="config_id" name="config_id" 
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="">Use active configurations</option>
+                        <!-- Load configs dynamically -->
+                        <option value="default">Swedish Consulting Market - Default</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button type="submit"
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Trigger Scan
+                    </button>
+                </div>
+            </div>
+        </form>
+        <div id="scan-result" class="mt-4"></div>
+    </div>
+</div>
+
+<!-- Recent Scan Logs -->
+<div class="bg-white shadow sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Recent Scan Logs</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Started
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Source
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Found
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Upserted
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Duration
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200" 
+                       hx-get="/api/scanner/logs" 
+                       hx-trigger="load, every 30s">
+                    {% for log in recent_logs %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ log.started_at }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ log.source }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            {% if log.status == "completed" %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                {{ log.status }}
+                            </span>
+                            {% elif log.status == "failed" %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                {{ log.status }}
+                            </span>
+                            {% else %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                {{ log.status }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ log.found_count }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ log.upserted_count }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if log.finished_at and log.started_at %}
+                                {% if log.finished_at is string or log.started_at is string %}
+                                    Duration N/A
+                                {% else %}
+                                    {{ (log.finished_at - log.started_at).total_seconds() }}s
+                                {% endif %}
+                            {% else %}
+                                Running...
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

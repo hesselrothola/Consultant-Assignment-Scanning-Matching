@@ -40,6 +40,11 @@ services:
       REDIS_URL: redis://redis:6379
       EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-openai}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PLAYWRIGHT_MCP_URL: http://playwright_mcp:8931/sse
+      CINODE_USERNAME: ${CINODE_USERNAME}
+      CINODE_PASSWORD: ${CINODE_PASSWORD}
+      LINKEDIN_USERNAME: ${LINKEDIN_USERNAME}
+      LINKEDIN_PASSWORD: ${LINKEDIN_PASSWORD}
     ports:
       - "8001:8000"  # Changed from 8000 to avoid conflict
     depends_on:
@@ -47,10 +52,48 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      playwright_mcp:
+        condition: service_started
     volumes:
       - ./app:/app/app
       - ./scripts:/app/scripts
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - consultant_network
+
+  playwright_mcp:
+    image: mcr.microsoft.com/playwright:v1.48.0-noble
+    container_name: consultant_playwright_mcp
+    init: true
+    user: pwuser
+    ipc: host
+    security_opt:
+      - seccomp:./config/seccomp_profile.json
+    environment:
+      PLAYWRIGHT_UA: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+      PLAYWRIGHT_PROXY: ${PLAYWRIGHT_PROXY:-}
+    command: >
+      bash -c '
+      npm install -g @modelcontextprotocol/server-playwright &&
+      ARGS=""
+      if [ -n "$PLAYWRIGHT_UA" ]; then ARGS="$ARGS --user-agent=\"$PLAYWRIGHT_UA\""; fi
+      if [ -n "$PLAYWRIGHT_PROXY" ]; then ARGS="$ARGS --proxy-server=$PLAYWRIGHT_PROXY"; fi
+      npx @modelcontextprotocol/server-playwright
+        --headless
+        --host 0.0.0.0
+        --port 8931
+        --user-data-dir /data/profile
+        --output-dir /data/out
+        --save-trace
+        --allowed-origins=* $ARGS
+      '
+    volumes:
+      - ./playwright_data:/data
+      - ./config/seccomp_profile.json:/home/pwuser/seccomp_profile.json:ro
+    ports:
+      - "8931:8931"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - consultant_network
 

@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 sm:px-6">
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">Scanning Configurations</h2>
+            <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">Manage automated scanning settings and source configurations</p>
+        </div>
+    </div>
+</div>
+
+<!-- Configurations List -->
+<div class="bg-white shadow sm:rounded-lg">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+                <tr>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Configuration
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Frequency
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Sources
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Performance
+                    </th>
+                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for config in configs %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ config.config_name }}
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            Created: {{ config.created_at.strftime('%Y-%m-%d') if config.created_at else 'Unknown' }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ config.scan_frequency }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        {% if config.enabled_sources %}
+                        <div class="flex flex-wrap gap-1">
+                            {% for source in config.enabled_sources %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                {{ source }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        No sources configured
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if config.is_active %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            Active
+                        </span>
+                        {% else %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                            Inactive
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if config.performance_score is not none %}
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-8 w-8">
+                                <div class="h-8 w-8 rounded-full flex items-center justify-center text-xs font-medium
+                                           {% if config.performance_score >= 0.8 %}bg-green-100 text-green-800
+                                           {% elif config.performance_score >= 0.6 %}bg-yellow-100 text-yellow-800
+                                           {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ (config.performance_score * 100)|round|int }}%
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="text-gray-400">No data</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="/consultant/config/{{ config.config_id }}" 
+                           class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            View Details
+                        </a>
+                        <button class="text-green-600 hover:text-green-900">
+                            Edit
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        No configurations found. The system will use default settings.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-white shadow rounded-lg p-6">
+        <div class="text-center">
+            <div class="text-3xl font-bold text-indigo-600">{{ configs|length }}</div>
+            <div class="text-sm text-gray-500">Active Configurations</div>
+        </div>
+    </div>
+    
+    <div class="bg-white shadow rounded-lg p-6">
+        <div class="text-center">
+            <div class="text-3xl font-bold text-green-600">
+                {% set active_sources = [] %}
+                {% for config in configs %}
+                    {% if config.is_active and config.enabled_sources %}
+                        {% for source in config.enabled_sources %}
+                            {% if source not in active_sources %}
+                                {% set _ = active_sources.append(source) %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+                {{ active_sources|length }}
+            </div>
+            <div class="text-sm text-gray-500">Active Sources</div>
+        </div>
+    </div>
+    
+    <div class="bg-white shadow rounded-lg p-6">
+        <div class="text-center">
+            <div class="text-3xl font-bold text-blue-600">
+                {% set avg_performance = configs|selectattr('performance_score', 'ne', none)|map(attribute='performance_score')|list %}
+                {% if avg_performance %}
+                    {{ (avg_performance|sum / avg_performance|length * 100)|round|int }}%
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+            <div class="text-sm text-gray-500">Average Performance</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
