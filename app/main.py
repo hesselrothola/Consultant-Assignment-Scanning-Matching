@@ -4,8 +4,9 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime, timezone
 import logging
+from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, UploadFile, File
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -23,7 +24,7 @@ from app.reports import ReportingService
 from app.scheduler import ScannerScheduler
 from app.parse.html_parser import GenericHTMLParser
 from app.ingest.rss_ingester import RSSIngester
-from app.scrapers import BrainvilleScraper, CinodeScraper
+from app.scrapers import BrainvilleScraper, CinodeScraper, EworkScraper
 from app.config import settings, SCRAPER_CONFIGS
 from app.auth_routes import router as auth_router
 from app.auth import get_current_user, require_user, User
@@ -204,6 +205,52 @@ async def bulk_upsert_jobs(
             logger.error(f"Error upserting job: {e}")
     
     return saved_jobs
+
+
+@app.post("/api/consultants/upload-cv")
+async def upload_consultant_cv(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    db: DatabaseRepository = Depends(get_db)
+):
+    """Upload and parse a CV file to create a new consultant."""
+    import tempfile
+    import shutil
+    from app.cv_parser import parse_and_add_consultant
+    
+    # Validate file type
+    allowed_extensions = ['.pdf', '.docx', '.doc', '.txt']
+    file_extension = Path(file.filename).suffix.lower()
+    
+    if file_extension not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed types: {', '.join(allowed_extensions)}"
+        )
+    
+    # Save uploaded file temporarily
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp_file:
+            shutil.copyfileobj(file.file, tmp_file)
+            tmp_path = tmp_file.name
+        
+        # Parse CV and add consultant
+        result = await parse_and_add_consultant(tmp_path, db)
+        
+        # Clean up temp file
+        os.unlink(tmp_path)
+        
+        if result["status"] == "error":
+            raise HTTPException(status_code=400, detail=result["message"])
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"CV upload failed: {e}")
+        # Clean up temp file if it exists
+        if 'tmp_path' in locals() and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/consultants/upsert", response_model=Consultant)
@@ -583,6 +630,86 @@ async def scrape_brainville(
         # Log failed ingestion
         await db.log_ingestion(
             source="brainville",
+            status="failed",
+            error=str(e)
+        )
+        
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/scrape/ework")
+async def scrape_ework(
+    background_tasks: BackgroundTasks,
+    db: DatabaseRepository = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service),
+    max_pages: Optional[int] = None,
+    countries: Optional[List[str]] = None
+):
+    """Manually trigger eWork scraping."""
+    try:
+        # Use configured countries or default to Sweden
+        target_countries = countries or ['SE']
+        
+        async with EworkScraper(countries=target_countries) as scraper:
+            if max_pages:
+                scraper.max_pages = max_pages
+            
+            jobs = await scraper.scrape_listings()
+            
+            saved_jobs = []
+            for job_data in jobs:
+                # Convert to JobIn model
+                job_model = await scraper.convert_to_job_model(job_data)
+                if job_model:
+                    # Save to database
+                    try:
+                        saved_job = await db.upsert_job(job_model)
+                        saved_jobs.append(saved_job)
+                        
+                        # Create embedding in background
+                        async def create_job_embedding(job_id, job_dict):
+                            try:
+                                text = embeddings.prepare_job_text(job_dict)
+                                embedding = await embeddings.create_embedding(text)
+                                await db.store_job_embedding(
+                                    job_id, 
+                                    embedding, 
+                                    embeddings.model_version
+                                )
+                            except Exception as e:
+                                logger.error(f"Error creating embedding for job {job_id}: {e}")
+                        
+                        background_tasks.add_task(
+                            create_job_embedding,
+                            saved_job.job_id,
+                            job_data
+                        )
+                        
+                    except Exception as e:
+                        logger.error(f"Error saving eWork job: {e}")
+            
+            # Log ingestion
+            await db.log_ingestion(
+                source="ework",
+                status="success",
+                found_count=len(jobs),
+                upserted_count=len(saved_jobs)
+            )
+            
+            return {
+                "status": "success",
+                "jobs_scraped": len(jobs),
+                "jobs_saved": len(saved_jobs),
+                "countries": target_countries,
+                "message": f"Successfully scraped {len(jobs)} jobs from eWork"
+            }
+            
+    except Exception as e:
+        logger.error(f"Error scraping eWork: {e}")
+        
+        # Log failed ingestion
+        await db.log_ingestion(
+            source="ework",
             status="failed",
             error=str(e)
         )

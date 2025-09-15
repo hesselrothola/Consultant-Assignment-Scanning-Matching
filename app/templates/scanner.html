@@ -106,33 +106,77 @@
     <div class="px-4 py-5 sm:p-6">
         <h3 class="text-lg font-medium leading-6 text-gray-900">Manual Scan</h3>
         <div class="mt-2 max-w-xl text-sm text-gray-500">
-            <p>Trigger a manual scan with specific configuration or use default.</p>
+            <p>Trigger a manual scan for specific sources or run all scrapers.</p>
         </div>
-        <form hx-post="/consultant/scanner/trigger" hx-target="#scan-result" class="mt-5">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                    <label for="config_id" class="block text-sm font-medium text-gray-700">
-                        Configuration (optional)
-                    </label>
-                    <select id="config_id" name="config_id" 
-                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                        <option value="">Use active configurations</option>
-                        <!-- Load configs dynamically -->
-                        <option value="default">Swedish Consulting Market - Default</option>
-                    </select>
-                </div>
-                <div class="flex items-end">
-                    <button type="submit"
-                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                        Trigger Scan
-                    </button>
-                </div>
+        
+        <!-- Individual Scraper Buttons -->
+        <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <!-- eWork Scraper -->
+            <div class="border border-gray-200 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-gray-900 mb-2">eWork/Verama</h4>
+                <p class="text-xs text-gray-500 mb-3">Consultant marketplace platform</p>
+                <button type="button"
+                        hx-post="/scrape/ework"
+                        hx-target="#ework-result"
+                        class="w-full inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Scan eWork
+                </button>
+                <div id="ework-result" class="mt-2 text-xs"></div>
             </div>
-        </form>
-        <div id="scan-result" class="mt-4"></div>
+            
+            <!-- Brainville Scraper -->
+            <div class="border border-gray-200 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-gray-900 mb-2">Brainville</h4>
+                <p class="text-xs text-gray-500 mb-3">IT consulting assignments</p>
+                <button type="button"
+                        hx-post="/scrape/brainville"
+                        hx-target="#brainville-result"
+                        class="w-full inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Scan Brainville
+                </button>
+                <div id="brainville-result" class="mt-2 text-xs"></div>
+            </div>
+            
+            <!-- Cinode Scraper -->
+            <div class="border border-gray-200 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-gray-900 mb-2">Cinode</h4>
+                <p class="text-xs text-gray-500 mb-3">Consultant network marketplace</p>
+                <button type="button"
+                        hx-post="/scrape/cinode"
+                        hx-target="#cinode-result"
+                        class="w-full inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
+                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Scan Cinode
+                </button>
+                <div id="cinode-result" class="mt-2 text-xs"></div>
+            </div>
+        </div>
+        
+        <!-- Run All Button -->
+        <div class="mt-6 border-t pt-6">
+            <form hx-post="/consultant/scanner/trigger" hx-target="#scan-result" class="flex justify-between items-center">
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900">Run All Scrapers</h4>
+                    <p class="text-xs text-gray-500 mt-1">Execute all enabled scrapers with default configuration</p>
+                </div>
+                <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Run All Scrapers
+                </button>
+            </form>
+            <div id="scan-result" class="mt-4"></div>
+        </div>
     </div>
 </div>
 

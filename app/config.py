@@ -66,7 +66,15 @@ class Settings(BaseSettings):
     # Security
     api_key: Optional[str] = None  # Optional API key for endpoints
     jwt_secret: Optional[str] = None  # For future JWT implementation
+    secret_key: Optional[str] = None  # JWT secret key
     cors_origins: list = ["*"]  # Allowed CORS origins
+    
+    # External Services
+    context7_api_key: Optional[str] = None
+    playwright_enabled: bool = False
+    playwright_proxy: Optional[str] = None
+    cinode_username: Optional[str] = None
+    cinode_password: Optional[str] = None
     
     # Logging
     log_level: str = "INFO"
@@ -117,8 +125,10 @@ SCRAPER_CONFIGS = {
         "rate_limit": 2.0,  # Slower rate for LinkedIn
     },
     "ework": {
-        "enabled": False,  # Enable when implemented
-        "base_url": "https://www.eworkgroup.com",
+        "enabled": True,  # Now implemented!
+        "base_url": "https://app.verama.com",
+        "countries": ["SE"],  # Configure target countries
+        "languages": ["SV", "EN"],  # Swedish and English
         "max_pages": settings.scraping_max_pages,
         "rate_limit": settings.scraping_rate_limit,
     },
