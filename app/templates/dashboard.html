@@ -3,247 +3,153 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<!-- Dashboard Header -->
-<div class="mb-8">
-    <h2 class="text-3xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
-        Executive Dashboard
-    </h2>
-    <p class="mt-2 text-gray-400">Real-time system overview and analytics</p>
-</div>
-
-<!-- Stats Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <!-- Total Jobs Card -->
-    <div class="glass rounded-xl p-6 hover-lift">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-sm font-medium text-gray-400 mb-1">Total Jobs</p>
-                <div class="text-3xl font-bold text-white" 
-                     hx-get="/api/stats/jobs" 
-                     hx-trigger="load, every 30s">
-                    <span class="loading-skeleton inline-block w-20 h-8 rounded"></span>
-                </div>
-                <p class="text-xs text-green-400 mt-2">
-                    <i class="fas fa-arrow-up mr-1"></i>12% from last week
-                </p>
-            </div>
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <i class="fas fa-briefcase text-white text-xl"></i>
-            </div>
-        </div>
+<div class="space-y-8">
+    <!-- Dashboard Header -->
+    <div>
+        <h2 class="text-3xl font-bold text-primary-text-dark">Executive Dashboard</h2>
+        <p class="mt-2 text-secondary-text-dark">Real-time system overview and analytics</p>
     </div>
 
-    <!-- Active Consultants Card -->
-    <div class="glass rounded-xl p-6 hover-lift">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-sm font-medium text-gray-400 mb-1">Active Consultants</p>
-                <div class="text-3xl font-bold text-white"
-                     hx-get="/api/stats/consultants"
-                     hx-trigger="load, every 30s">
-                    <span class="loading-skeleton inline-block w-20 h-8 rounded"></span>
-                </div>
-                <p class="text-xs text-green-400 mt-2">
-                    <i class="fas fa-arrow-up mr-1"></i>8 new this month
-                </p>
-            </div>
-            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <i class="fas fa-user-tie text-white text-xl"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- Total Matches Card -->
-    <div class="glass rounded-xl p-6 hover-lift">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-sm font-medium text-gray-400 mb-1">Total Matches</p>
-                <div class="text-3xl font-bold text-white"
-                     hx-get="/api/stats/matches"
-                     hx-trigger="load, every 30s">
-                    <span class="loading-skeleton inline-block w-20 h-8 rounded"></span>
-                </div>
-                <p class="text-xs text-yellow-400 mt-2">
-                    <i class="fas fa-link mr-1"></i>85% match rate
-                </p>
-            </div>
-            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                <i class="fas fa-link text-white text-xl"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scanner Status Card -->
-    <div class="glass rounded-xl p-6 hover-lift">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-sm font-medium text-gray-400 mb-1">Scanner Status</p>
-                <div class="text-3xl font-bold"
-                     hx-get="/api/stats/scanner"
-                     hx-trigger="load, every 30s">
-                    <span class="text-green-400 font-bold">Active</span>
-                </div>
-                <p class="text-xs text-gray-400 mt-2">
-                    <i class="fas fa-clock mr-1"></i>Next scan in 2h
-                </p>
-            </div>
-            <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center animate-pulse-slow">
-                <i class="fas fa-radar text-white text-xl"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Actions -->
-<div class="glass rounded-xl p-6 mb-8">
-    <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
-        <i class="fas fa-bolt text-yellow-400 mr-3"></i>
-        Quick Actions
-    </h3>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button onclick="triggerScan()" class="group bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg p-4 transition-all duration-200 hover:scale-105">
-            <i class="fas fa-sync-alt text-2xl mb-2 group-hover:animate-spin"></i>
-            <span class="block text-sm font-medium">Trigger Scan</span>
-        </button>
-        
-        <a href="/consultant/consultants/add" class="group bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg p-4 transition-all duration-200 hover:scale-105 text-center block">
-            <i class="fas fa-user-plus text-2xl mb-2"></i>
-            <span class="block text-sm font-medium">Add Consultant</span>
-        </a>
-        
-        <button onclick="generateReport()" class="group bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg p-4 transition-all duration-200 hover:scale-105">
-            <i class="fas fa-file-alt text-2xl mb-2"></i>
-            <span class="block text-sm font-medium">Generate Report</span>
-        </button>
-        
-        <a href="/consultant/config" class="group bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white rounded-lg p-4 transition-all duration-200 hover:scale-105 text-center block">
-            <i class="fas fa-cog text-2xl mb-2"></i>
-            <span class="block text-sm font-medium">Settings</span>
-        </a>
-    </div>
-</div>
-
-<!-- Recent Activity & Performance Charts -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-    <!-- Recent Activity -->
-    <div class="glass rounded-xl p-6">
-        <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
-            <i class="fas fa-history text-blue-400 mr-3"></i>
-            Recent Activity
-        </h3>
-        <div class="space-y-3" hx-get="/api/activity/recent" hx-trigger="load, every 60s">
-            <!-- Loading skeletons -->
-            <div class="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                <div class="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-briefcase text-blue-400"></i>
-                </div>
-                <div class="flex-1">
-                    <p class="text-sm text-gray-300">New job posted at Spotify</p>
-                    <p class="text-xs text-gray-500">2 minutes ago</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                <div class="w-10 h-10 bg-green-600/20 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-check text-green-400"></i>
-                </div>
-                <div class="flex-1">
-                    <p class="text-sm text-gray-300">Match found: John Doe → Senior Developer</p>
-                    <p class="text-xs text-gray-500">15 minutes ago</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                <div class="w-10 h-10 bg-purple-600/20 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-user-plus text-purple-400"></i>
-                </div>
-                <div class="flex-1">
-                    <p class="text-sm text-gray-300">New consultant registered</p>
-                    <p class="text-xs text-gray-500">1 hour ago</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Performance Chart -->
-    <div class="glass rounded-xl p-6">
-        <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
-            <i class="fas fa-chart-line text-green-400 mr-3"></i>
-            Weekly Performance
-        </h3>
-        <div class="h-64 flex items-center justify-center text-gray-400">
-            <canvas id="performanceChart"></canvas>
-        </div>
-    </div>
-</div>
-
-<!-- Top Companies & Latest Matches -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- Top Hiring Companies -->
-    <div class="glass rounded-xl p-6">
-        <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
-            <i class="fas fa-building text-purple-400 mr-3"></i>
-            Top Hiring Companies
-        </h3>
-        <div class="space-y-3">
-            <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                <div class="flex items-center space-x-3">
-                    <span class="text-2xl font-bold text-purple-400">1</span>
-                    <div>
-                        <p class="font-medium text-gray-200">Spotify</p>
-                        <p class="text-xs text-gray-500">12 active positions</p>
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Jobs Card -->
+        <div class="bg-primary-dark rounded-lg p-6 shadow-lg hover:shadow-accent-dark/20 transition-shadow duration-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-secondary-text-dark mb-1">Total Jobs</p>
+                    <div class="text-3xl font-bold text-primary-text-dark" hx-get="/api/stats/jobs" hx-trigger="load, every 30s">
+                        <span class="animate-pulse">...</span>
                     </div>
                 </div>
-                <span class="px-3 py-1 bg-green-600/20 text-green-400 text-xs rounded-full">+25%</span>
+                <div class="w-12 h-12 bg-accent-dark/20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-briefcase text-accent-dark text-xl"></i>
+                </div>
             </div>
-            <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                <div class="flex items-center space-x-3">
-                    <span class="text-2xl font-bold text-purple-400">2</span>
-                    <div>
-                        <p class="font-medium text-gray-200">Klarna</p>
-                        <p class="text-xs text-gray-500">8 active positions</p>
+        </div>
+
+        <!-- Active Consultants Card -->
+        <div class="bg-primary-dark rounded-lg p-6 shadow-lg hover:shadow-accent-dark/20 transition-shadow duration-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-secondary-text-dark mb-1">Active Consultants</p>
+                    <div class="text-3xl font-bold text-primary-text-dark" hx-get="/api/stats/consultants" hx-trigger="load, every 30s">
+                        <span class="animate-pulse">...</span>
                     </div>
                 </div>
-                <span class="px-3 py-1 bg-yellow-600/20 text-yellow-400 text-xs rounded-full">+10%</span>
+                <div class="w-12 h-12 bg-accent-dark/20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-user-tie text-accent-dark text-xl"></i>
+                </div>
             </div>
-            <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                <div class="flex items-center space-x-3">
-                    <span class="text-2xl font-bold text-purple-400">3</span>
-                    <div>
-                        <p class="font-medium text-gray-200">Ericsson</p>
-                        <p class="text-xs text-gray-500">6 active positions</p>
+        </div>
+
+        <!-- Total Matches Card -->
+        <div class="bg-primary-dark rounded-lg p-6 shadow-lg hover:shadow-accent-dark/20 transition-shadow duration-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-secondary-text-dark mb-1">Total Matches</p>
+                    <div class="text-3xl font-bold text-primary-text-dark" hx-get="/api/stats/matches" hx-trigger="load, every 30s">
+                        <span class="animate-pulse">...</span>
                     </div>
                 </div>
-                <span class="px-3 py-1 bg-red-600/20 text-red-400 text-xs rounded-full">-5%</span>
+                <div class="w-12 h-12 bg-accent-dark/20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-link text-accent-dark text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scanner Status Card -->
+        <div class="bg-primary-dark rounded-lg p-6 shadow-lg hover:shadow-accent-dark/20 transition-shadow duration-300">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-secondary-text-dark mb-1">Scanner Status</p>
+                    <div class="text-xl font-bold" hx-get="/api/stats/scanner" hx-trigger="load, every 30s">
+                        <span class="text-green-400">Active</span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 bg-accent-dark/20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-radar text-accent-dark text-xl animate-pulse-slow"></i>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Latest Successful Matches -->
-    <div class="glass rounded-xl p-6">
-        <h3 class="text-xl font-semibold text-white mb-4 flex items-center">
-            <i class="fas fa-handshake text-green-400 mr-3"></i>
-            Latest Successful Matches
+    <!-- Quick Actions -->
+    <div class="bg-primary-dark rounded-lg p-6 shadow-lg">
+        <h3 class="text-xl font-semibold text-primary-text-dark mb-4 flex items-center">
+            <i class="fas fa-bolt text-yellow-400 mr-3"></i>
+            Quick Actions
         </h3>
-        <div class="space-y-3">
-            <div class="p-3 bg-gray-800/50 rounded-lg">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="font-medium text-gray-200">Senior React Developer</p>
-                    <span class="px-2 py-1 bg-green-600/20 text-green-400 text-xs rounded">95% match</span>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button onclick="triggerScan()" class="bg-accent-dark hover:bg-accent-dark/80 text-white rounded-lg p-4 transition-colors duration-200">
+                <i class="fas fa-sync-alt text-2xl mb-2"></i>
+                <span class="block text-sm font-medium">Trigger Scan</span>
+            </button>
+            
+            <a href="/consultant/consultants/add" class="bg-accent-dark hover:bg-accent-dark/80 text-white rounded-lg p-4 transition-colors duration-200 text-center block">
+                <i class="fas fa-user-plus text-2xl mb-2"></i>
+                <span class="block text-sm font-medium">Add Consultant</span>
+            </a>
+            
+            <button onclick="generateReport()" class="bg-accent-dark hover:bg-accent-dark/80 text-white rounded-lg p-4 transition-colors duration-200">
+                <i class="fas fa-file-alt text-2xl mb-2"></i>
+                <span class="block text-sm font-medium">Generate Report</span>
+            </button>
+            
+            <a href="/consultant/config" class="bg-accent-dark hover:bg-accent-dark/80 text-white rounded-lg p-4 transition-colors duration-200 text-center block">
+                <i class="fas fa-cog text-2xl mb-2"></i>
+                <span class="block text-sm font-medium">Settings</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Activity & Performance Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Activity -->
+        <div class="bg-primary-dark rounded-lg p-6 shadow-lg">
+            <h3 class="text-xl font-semibold text-primary-text-dark mb-4 flex items-center">
+                <i class="fas fa-history text-blue-400 mr-3"></i>
+                Recent Activity
+            </h3>
+            <div class="space-y-3" hx-get="/api/activity/recent" hx-trigger="load, every 60s">
+                <!-- Loading skeletons -->
+                <div class="flex items-center space-x-3 p-3 bg-secondary-dark/50 rounded-lg">
+                    <div class="w-10 h-10 bg-accent-dark/20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-briefcase text-blue-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-primary-text-dark">New job posted at Spotify</p>
+                        <p class="text-xs text-secondary-text-dark">2 minutes ago</p>
+                    </div>
                 </div>
-                <p class="text-sm text-gray-400">John Andersson → Spotify</p>
+                <div class="flex items-center space-x-3 p-3 bg-secondary-dark/50 rounded-lg">
+                    <div class="w-10 h-10 bg-accent-dark/20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check text-green-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-primary-text-dark">Match found: John Doe → Senior Developer</p>
+                        <p class="text-xs text-secondary-text-dark">15 minutes ago</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3 p-3 bg-secondary-dark/50 rounded-lg">
+                    <div class="w-10 h-10 bg-accent-dark/20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-plus text-purple-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-primary-text-dark">New consultant registered</p>
+                        <p class="text-xs text-secondary-text-dark">1 hour ago</p>
+                    </div>
+                </div>
             </div>
-            <div class="p-3 bg-gray-800/50 rounded-lg">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="font-medium text-gray-200">Cloud Architect</p>
-                    <span class="px-2 py-1 bg-green-600/20 text-green-400 text-xs rounded">92% match</span>
-                </div>
-                <p class="text-sm text-gray-400">Emma Larsson → Klarna</p>
-            </div>
-            <div class="p-3 bg-gray-800/50 rounded-lg">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="font-medium text-gray-200">Data Engineer</p>
-                    <span class="px-2 py-1 bg-green-600/20 text-green-400 text-xs rounded">88% match</span>
-                </div>
-                <p class="text-sm text-gray-400">Marcus Berg → H&M</p>
+        </div>
+
+        <!-- Performance Chart -->
+        <div class="bg-primary-dark rounded-lg p-6 shadow-lg">
+            <h3 class="text-xl font-semibold text-primary-text-dark mb-4 flex items-center">
+                <i class="fas fa-chart-line text-green-400 mr-3"></i>
+                Weekly Performance
+            </h3>
+            <div class="h-64 flex items-center justify-center text-secondary-text-dark">
+                <canvas id="performanceChart"></canvas>
             </div>
         </div>
     </div>

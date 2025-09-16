@@ -3,14 +3,14 @@
 {% block title %}Reports{% endblock %}
 
 {% block content %}
-<div class="px-4 py-5 sm:px-6">
-    <div class="sm:flex sm:items-center sm:justify-between">
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
         <div>
-            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">Reports</h2>
-            <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">Daily and weekly analytics for consultant assignment matching</p>
+            <h2 class="text-3xl font-bold text-primary-text-dark">Reports</h2>
+            <p class="mt-2 text-secondary-text-dark">Daily and weekly analytics for consultant assignment matching</p>
         </div>
-        <div class="mt-4 sm:mt-0 flex space-x-3">
-            <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+        <div class="flex space-x-3">
+            <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-accent-dark hover:bg-accent-dark/80">
                 Generate Daily Report
             </button>
             <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
@@ -18,209 +18,137 @@
             </button>
         </div>
     </div>
-</div>
 
-<!-- Report Summary Cards -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-    <div class="bg-white shadow rounded-lg p-6">
-        <div class="text-center">
-            <div class="text-3xl font-bold text-blue-600">
-                {{ daily_report.jobs_found if daily_report else 0 }}
-            </div>
-            <div class="text-sm text-gray-500">Jobs Found Today</div>
+    <!-- Report Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-primary-dark shadow-lg rounded-lg p-6 text-center">
+            <div class="text-3xl font-bold text-blue-400">{{ daily_report.jobs_found if daily_report else 0 }}</div>
+            <div class="text-sm text-secondary-text-dark">Jobs Found Today</div>
+        </div>
+        <div class="bg-primary-dark shadow-lg rounded-lg p-6 text-center">
+            <div class="text-3xl font-bold text-green-400">{{ daily_report.matches_generated if daily_report else 0 }}</div>
+            <div class="text-sm text-secondary-text-dark">Matches Generated</div>
+        </div>
+        <div class="bg-primary-dark shadow-lg rounded-lg p-6 text-center">
+            <div class="text-3xl font-bold text-purple-400">{{ daily_report.top_companies|length if daily_report and daily_report.top_companies else 0 }}</div>
+            <div class="text-sm text-secondary-text-dark">Active Companies</div>
+        </div>
+        <div class="bg-primary-dark shadow-lg rounded-lg p-6 text-center">
+            <div class="text-3xl font-bold text-orange-400">{{ weekly_report.avg_match_score if weekly_report else 0 }}%</div>
+            <div class="text-sm text-secondary-text-dark">Avg Match Score</div>
         </div>
     </div>
-    
-    <div class="bg-white shadow rounded-lg p-6">
-        <div class="text-center">
-            <div class="text-3xl font-bold text-green-600">
-                {{ daily_report.matches_generated if daily_report else 0 }}
-            </div>
-            <div class="text-sm text-gray-500">Matches Generated</div>
-        </div>
-    </div>
-    
-    <div class="bg-white shadow rounded-lg p-6">
-        <div class="text-center">
-            <div class="text-3xl font-bold text-purple-600">
-                {{ daily_report.top_companies|length if daily_report and daily_report.top_companies else 0 }}
-            </div>
-            <div class="text-sm text-gray-500">Active Companies</div>
-        </div>
-    </div>
-    
-    <div class="bg-white shadow rounded-lg p-6">
-        <div class="text-center">
-            <div class="text-3xl font-bold text-orange-600">
-                {{ weekly_report.avg_match_score if weekly_report else 0 }}%
-            </div>
-            <div class="text-sm text-gray-500">Avg Match Score</div>
-        </div>
-    </div>
-</div>
 
-<!-- Daily Report -->
-{% if daily_report %}
-<div class="bg-white shadow sm:rounded-lg mb-8">
-    <div class="px-4 py-5 sm:p-6">
-        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">
-            Daily Report
-            <span class="text-sm text-gray-500 font-normal">
-                {{ generated_at[:10] if generated_at else "Today" }}
-            </span>
-        </h3>
-        
+    <!-- Daily Report -->
+    {% if daily_report %}
+    <div class="bg-primary-dark shadow-lg rounded-lg p-6">
+        <h3 class="text-lg font-medium leading-6 text-primary-text-dark mb-4">Daily Report <span class="text-sm text-secondary-text-dark font-normal">{{ generated_at[:10] if generated_at else "Today" }}</span></h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Jobs by Source -->
             <div>
-                <h4 class="text-md font-medium text-gray-900 mb-3">Jobs by Source</h4>
+                <h4 class="text-md font-medium text-primary-text-dark mb-3">Jobs by Source</h4>
                 {% if daily_report.jobs_by_source %}
                 <div class="space-y-2">
                     {% for source, count in daily_report.jobs_by_source.items() %}
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">{{ source|title }}</span>
-                        <span class="text-sm font-medium">{{ count }}</span>
+                        <span class="text-sm text-secondary-text-dark">{{ source|title }}</span>
+                        <span class="text-sm font-medium text-primary-text-dark">{{ count }}</span>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
-                <p class="text-sm text-gray-500">No jobs found today</p>
+                <p class="text-sm text-secondary-text-dark">No jobs found today</p>
                 {% endif %}
             </div>
-            
-            <!-- Top Skills -->
             <div>
-                <h4 class="text-md font-medium text-gray-900 mb-3">Top Skills in Demand</h4>
+                <h4 class="text-md font-medium text-primary-text-dark mb-3">Top Skills in Demand</h4>
                 {% if daily_report.top_skills %}
                 <div class="flex flex-wrap gap-2">
                     {% for skill, count in daily_report.top_skills[:10] %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {{ skill }} ({{ count }})
-                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-dark/20 text-accent-dark">{{ skill }} ({{ count }})</span>
                     {% endfor %}
                 </div>
                 {% else %}
-                <p class="text-sm text-gray-500">No skill data available</p>
+                <p class="text-sm text-secondary-text-dark">No skill data available</p>
                 {% endif %}
             </div>
         </div>
-        
-        <!-- Top Companies -->
         {% if daily_report.top_companies %}
         <div class="mt-6">
-            <h4 class="text-md font-medium text-gray-900 mb-3">Most Active Companies</h4>
+            <h4 class="text-md font-medium text-primary-text-dark mb-3">Most Active Companies</h4>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {% for company in daily_report.top_companies[:6] %}
-                <div class="border rounded-lg p-3">
-                    <div class="text-sm font-medium text-gray-900">{{ company.company }}</div>
-                    <div class="text-xs text-gray-500">{{ company.job_count }} jobs</div>
+                <div class="bg-secondary-dark rounded-lg p-3">
+                    <div class="text-sm font-medium text-primary-text-dark">{{ company.company }}</div>
+                    <div class="text-xs text-secondary-text-dark">{{ company.job_count }} jobs</div>
                 </div>
                 {% endfor %}
             </div>
         </div>
         {% endif %}
     </div>
-</div>
-{% endif %}
+    {% endif %}
 
-<!-- Weekly Report -->
-{% if weekly_report %}
-<div class="bg-white shadow sm:rounded-lg mb-8">
-    <div class="px-4 py-5 sm:p-6">
-        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">
-            Weekly Report
-            <span class="text-sm text-gray-500 font-normal">
-                Last 7 days
-            </span>
-        </h3>
-        
+    <!-- Weekly Report -->
+    {% if weekly_report %}
+    <div class="bg-primary-dark shadow-lg rounded-lg p-6">
+        <h3 class="text-lg font-medium leading-6 text-primary-text-dark mb-4">Weekly Report <span class="text-sm text-secondary-text-dark font-normal">Last 7 days</span></h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Weekly Trends -->
             <div>
-                <h4 class="text-md font-medium text-gray-900 mb-3">Weekly Trends</h4>
+                <h4 class="text-md font-medium text-primary-text-dark mb-3">Weekly Trends</h4>
                 <div class="space-y-3">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Total Jobs This Week</span>
-                        <span class="text-sm font-medium">{{ weekly_report.total_jobs }}</span>
+                        <span class="text-sm text-secondary-text-dark">Total Jobs This Week</span>
+                        <span class="text-sm font-medium text-primary-text-dark">{{ weekly_report.total_jobs }}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">New Companies</span>
-                        <span class="text-sm font-medium">{{ weekly_report.new_companies }}</span>
+                        <span class="text-sm text-secondary-text-dark">New Companies</span>
+                        <span class="text-sm font-medium text-primary-text-dark">{{ weekly_report.new_companies }}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Total Matches Generated</span>
-                        <span class="text-sm font-medium">{{ weekly_report.total_matches }}</span>
+                        <span class="text-sm text-secondary-text-dark">Total Matches Generated</span>
+                        <span class="text-sm font-medium text-primary-text-dark">{{ weekly_report.total_matches }}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Average Match Score</span>
-                        <span class="text-sm font-medium">{{ weekly_report.avg_match_score }}%</span>
+                        <span class="text-sm text-secondary-text-dark">Average Match Score</span>
+                        <span class="text-sm font-medium text-primary-text-dark">{{ weekly_report.avg_match_score }}%</span>
                     </div>
                 </div>
             </div>
-            
-            <!-- Growth Metrics -->
             <div>
-                <h4 class="text-md font-medium text-gray-900 mb-3">Growth Metrics</h4>
+                <h4 class="text-md font-medium text-primary-text-dark mb-3">Growth Metrics</h4>
                 <div class="space-y-3">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Job Growth</span>
-                        <span class="text-sm font-medium 
-                                   {% if weekly_report.job_growth >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                            {% if weekly_report.job_growth >= 0 %}+{% endif %}{{ weekly_report.job_growth }}%
-                        </span>
+                        <span class="text-sm text-secondary-text-dark">Job Growth</span>
+                        <span class="text-sm font-medium {% if weekly_report.job_growth >= 0 %}text-green-400{% else %}text-red-400{% endif %}">{% if weekly_report.job_growth >= 0 %}+{% endif %}{{ weekly_report.job_growth }}%</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Match Quality</span>
-                        <span class="text-sm font-medium
-                                   {% if weekly_report.match_quality_trend >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                            {% if weekly_report.match_quality_trend >= 0 %}+{% endif %}{{ weekly_report.match_quality_trend }}%
-                        </span>
+                        <span class="text-sm text-secondary-text-dark">Match Quality</span>
+                        <span class="text-sm font-medium {% if weekly_report.match_quality_trend >= 0 %}text-green-400{% else %}text-red-400{% endif %}">{% if weekly_report.match_quality_trend >= 0 %}+{% endif %}{{ weekly_report.match_quality_trend }}%</span>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Top Prospect Companies -->
         {% if weekly_report.prospect_companies %}
         <div class="mt-6">
-            <h4 class="text-md font-medium text-gray-900 mb-3">Top 10 Prospect Companies</h4>
+            <h4 class="text-md font-medium text-primary-text-dark mb-3">Top 10 Prospect Companies</h4>
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead class="bg-secondary-dark">
                         <tr>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Company
-                            </th>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Jobs Posted
-                            </th>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Match Score
-                            </th>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Opportunity
-                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Company</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Jobs Posted</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Match Score</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Opportunity</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-primary-dark divide-y divide-gray-700">
                         {% for company in weekly_report.prospect_companies[:10] %}
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ company.company }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ company.job_count }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ (company.avg_match_score * 100)|round|int }}%
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                           {% if company.opportunity_score >= 0.8 %}bg-green-100 text-green-800
-                                           {% elif company.opportunity_score >= 0.6 %}bg-yellow-100 text-yellow-800
-                                           {% else %}bg-red-100 text-red-800{% endif %}">
-                                    {{ (company.opportunity_score * 100)|round|int }}%
-                                </span>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-text-dark">{{ company.company }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-text-dark">{{ company.job_count }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-text-dark">{{ (company.avg_match_score * 100)|round|int }}%</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-text-dark">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if company.opportunity_score >= 0.8 %}bg-green-900/50 text-green-300{% elif company.opportunity_score >= 0.6 %}bg-yellow-900/50 text-yellow-300{% else %}bg-red-900/50 text-red-300{% endif %}">{{ (company.opportunity_score * 100)|round|int }}%</span>
                             </td>
                         </tr>
                         {% endfor %}
@@ -230,37 +158,22 @@
         </div>
         {% endif %}
     </div>
-</div>
-{% endif %}
+    {% endif %}
 
-<!-- Export Options -->
-<div class="bg-white shadow sm:rounded-lg">
-    <div class="px-4 py-5 sm:p-6">
-        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Export & Notifications</h3>
-        
+    <!-- Export Options -->
+    <div class="bg-primary-dark shadow-lg rounded-lg p-6">
+        <h3 class="text-lg font-medium leading-6 text-primary-text-dark mb-4">Export & Notifications</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Export to PDF
+            <button class="inline-flex items-center justify-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md text-primary-text-dark bg-secondary-dark hover:bg-gray-600">
+                <i class="fas fa-file-pdf mr-2"></i>Export to PDF
             </button>
-            
-            <button class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.013 8.013 0 01-7-4c0-4.418 3.582-8 8-8s8 3.582 8 8z"></path>
-                </svg>
-                Send to Slack
+            <button class="inline-flex items-center justify-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md text-primary-text-dark bg-secondary-dark hover:bg-gray-600">
+                <i class="fab fa-slack mr-2"></i>Send to Slack
             </button>
-            
-            <button class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                </svg>
-                Send to Teams
+            <button class="inline-flex items-center justify-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md text-primary-text-dark bg-secondary-dark hover:bg-gray-600">
+                <i class="fab fa-microsoft-teams mr-2"></i>Send to Teams
             </button>
         </div>
     </div>
 </div>
-
 {% endblock %}
