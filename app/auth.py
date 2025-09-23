@@ -14,7 +14,7 @@ import os
 import secrets
 
 # Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production-123456789")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 REFRESH_TOKEN_EXPIRE_DAYS = 30

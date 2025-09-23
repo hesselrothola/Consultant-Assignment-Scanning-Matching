@@ -293,3 +293,4 @@ Critical settings:
 - Weekly executive market analysis reports
 - Company prospect scoring for enterprise clients
 - Public procurement integration (Visma Opic)
+- never ever start anying on my local laptop. teh project is drunning on the server.

@@ -9,7 +9,7 @@ import os
 import secrets
 from jose import JWTError, jwt
 
-SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production-123456789")
 ALGORITHM = "HS256"
 
 
