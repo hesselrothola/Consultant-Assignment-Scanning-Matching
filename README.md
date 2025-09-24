@@ -1,281 +1,219 @@
-# Enterprise Consultant Assignment Matching System
+# Swedish Enterprise Consultant Assignment Matching System
 
-AI-powered platform for matching **senior-level consultants** (C-level, architects, transformation leaders) with executive assignments in the Swedish consulting market.
+🚀 **LIVE SYSTEM** - AI-powered platform for matching senior-level consultants with executive assignments in the Swedish consulting market.
 
-## Target Consultant Profiles
+**🌐 Live Dashboard:** https://n8n.cognova.net/consultant/
 
-This system is optimized for **executive and senior technical consultants** with 10-20+ years experience:
-- **Management**: Interim CTO/CIO, Digital Transformation Leaders, Change Managers
-- **Architecture**: Enterprise Architects, Business Architects, Solution Architects  
-- **Leadership**: Program Managers, R&D Directors, Head of Development
-- **Specialists**: Senior Data Architects, BI Strategy Leads, Agile Coaches
+## Current Status (September 2025)
 
-Typical rate expectations: **1,200-1,800 SEK/hour**
+✅ **DEPLOYED & OPERATIONAL**
+- Running on production server (91.98.72.10)
+- Full authentication system working
+- Dark theme dashboard with glass morphism design
+- Automated job scanning and AI matching
+- PostgreSQL + pgvector for semantic search
+- Docker containerized deployment
 
-## Features
+### Login Credentials
+- **Username:** `admin`
+- **Password:** `admin`
+- **URL:** https://n8n.cognova.net/auth/login
 
-- **Multi-source job ingestion** from executive search firms and enterprise clients
-- **Authenticated scraping** via Playwright MCP for Cinode, LinkedIn premium jobs
-- **AI-powered matching** optimized for strategic/leadership language
-- **Seniority filtering** to exclude junior positions automatically
-- **Executive search focus** targeting high-value transformation assignments
-- **Automated reports** highlighting C-level and architecture opportunities
-- **Company intelligence** tracking enterprise clients and executive recruiters
+## System Overview
 
-## Quick Start
+This enterprise-grade system targets **senior consultants and executives** with 15+ years experience:
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/consultant-matching.git
-cd consultant-matching
+**Target Profiles:**
+- **C-Level:** Interim CTO/CIO, Chief Digital Officers, Transformation Directors
+- **Enterprise Architects:** Business/Solution/Data Architects with strategic roles
+- **Program Leaders:** Digital transformation, change management, M&A integration
+- **Technical Executives:** Head of Development, R&D Directors, Engineering VPs
 
-# Copy environment configuration
-cp .env.example .env
-# Edit .env to set:
-#   - OPENAI_API_KEY (for embeddings)
-#   - CINODE_USERNAME / CINODE_PASSWORD (for authenticated scraping)
-#   - PLAYWRIGHT_ENABLED=true (for JavaScript sites)
-
-# Start all services including Playwright MCP
-docker-compose up -d
-
-# Add senior consultant profiles
-docker-compose exec api python scripts/add_senior_consultants.py
-
-# Test Cinode scraper for executive assignments
-docker-compose exec api python scripts/test_scraper.py --scraper cinode
-```
-
-## API Endpoints
-
-### Executive Jobs
-- `POST /api/jobs` - Ingest C-level/architect positions
-- `GET /api/jobs?seniority=senior` - List senior-level assignments
-- `GET /api/jobs/{id}` - Get assignment details with rate expectations
-
-### Senior Consultants  
-- `POST /api/consultants` - Add enterprise consultant profile
-- `GET /api/consultants?seniority=senior` - List executive consultants
-- `GET /api/consultants/{id}` - Get consultant with certifications/MBA
-
-### Strategic Matching
-- `POST /api/match/job/{job_id}` - Match executives to transformation roles
-- `GET /api/matches/job/{job_id}?min_score=0.7` - High-confidence matches only
-
-### Executive Reports
-- `POST /api/reports/daily` - Daily C-level opportunity scan
-- `POST /api/reports/weekly` - Weekly executive market analysis
-- `GET /api/reports/prospects` - Top enterprise clients hiring
-
-### Authenticated Scrapers
-- `POST /api/scrapers/cinode/run` - Scan Cinode premium assignments
-- `POST /api/scrapers/linkedin/run` - Scan LinkedIn executive positions
-- `GET /api/scrapers/status` - Check scraper authentication status
-
-## Web UI Dashboard
-
-Access the full-featured web dashboard at: **http://localhost:8001/consultant/**
-
-- **Dashboard**: Executive assignment overview and analytics
-- **Jobs**: Browse and filter senior-level positions
-- **Consultants**: Manage enterprise consultant profiles
-- **Matches**: AI-powered matching with detailed scoring
-- **Scanner**: Control authenticated scrapers
-- **Reports**: Daily/weekly executive market analysis
-- **Configuration**: System settings and scraper credentials
-
-## Configuration
-
-### Environment Variables
-
-```env
-# Embedding Service (optimized for strategic language)
-EMBEDDING_BACKEND=openai  # Better for executive terminology
-OPENAI_API_KEY=your-api-key-here
-
-# Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5433/consultant_matching
-
-# Authenticated Scraping (Executive Platforms)
-PLAYWRIGHT_ENABLED=true
-CINODE_USERNAME=your-email@company.com  
-CINODE_PASSWORD=your-password
-LINKEDIN_USERNAME=premium-account@company.com
-LINKEDIN_PASSWORD=your-password
-
-# Redis (for caching executive search results)
-REDIS_URL=redis://localhost:6380
-```
-
-### Senior Consultant Matching Weights
-
-The system uses specialized weights for executive matching:
-
-```python
-{
-    "semantic_similarity": 0.35,  # Strategic language understanding
-    "seniority_match": 0.25,      # Must be senior/C-level
-    "role_compatibility": 0.15,   # Architecture/management fit
-    "industry_experience": 0.10,  # Domain expertise bonus
-    "leadership_scope": 0.10,     # Team/budget responsibility
-    "location_flexibility": 0.05  # Less critical for executives
-}
-```
+**Rate Range:** 1,200-1,800 SEK/hour for executive assignments
 
 ## Architecture
 
-The system uses enterprise-grade architecture with authenticated scraping:
+### Production Environment
+- **Server:** 91.98.72.10 (Ubuntu)
+- **Containers:**
+  - `consultant_api` (FastAPI + Python) - Port 8002
+  - `consultant_postgres` (PostgreSQL 16 + pgvector) - Port 5444
+  - `consultant_redis` (Cache) - Port 6390
+- **Web Server:** Nginx proxy with SSL
+- **Scheduler:** APScheduler for automated scanning (07:00 daily)
 
+### Key Features
+
+**🔍 Multi-Source Job Ingestion:**
+- Brainville (Management consulting assignments)
+- Cinode (Premium authenticated access)
+- eWork/Verama (Senior consultant track)
+- Manual job upload with AI parsing
+
+**🤖 AI-Powered Matching:**
+- OpenAI embeddings optimized for strategic language
+- Executive-weighted scoring algorithm
+- Semantic similarity for leadership skills
+- Seniority and industry filtering
+
+**📊 Executive Dashboard:**
+- Real-time assignment statistics
+- Company prospect tracking
+- Consultant profile management
+- Match scoring and recommendations
+- Automated report generation
+
+## Web Dashboard Features
+
+### Main Sections
+- **📈 Dashboard:** Executive metrics, recent matches, market trends
+- **💼 Jobs:** Browse senior assignments, filter by industry/location
+- **👥 Consultants:** Manage executive profiles, skills, certifications
+- **🎯 Matches:** AI-powered matching with detailed scoring explanations
+- **🔍 Scanner:** Control automated scrapers, view scraping status
+- **📋 Reports:** Daily briefs, weekly market analysis
+- **⚙️ Configuration:** System settings, scraper credentials
+
+### Authentication & Security
+- JWT-based authentication with HTTP-only cookies
+- Role-based access (admin/manager/viewer)
+- Session management with auto-logout
+- Secure password hashing (bcrypt)
+
+## API Endpoints
+
+### Core Functionality
 ```
-┌─────────────┐     ┌──────────────┐     ┌──────────────┐
-│   n8n       │────▶│   FastAPI    │────▶│  PostgreSQL  │
-│  Workflows  │     │   Backend    │     │   + pgvector │
-└─────────────┘     └──────────────┘     └──────────────┘
-                           │
-                    ┌──────▼──────┐
-                    │  Services:   │
-                    ├──────────────┤
-                    │ OpenAI API   │ (Executive language embeddings)
-                    │ Playwright   │ (Cinode/LinkedIn auth)
-                    │ MCP Server   │ (Browser automation)
-                    └──────────────┘
-                           │
-                    ┌──────▼──────┐
-                    │ Data Sources │
-                    ├──────────────┤
-                    │ Cinode       │ (Premium assignments)
-                    │ LinkedIn     │ (Executive positions)
-                    │ Brainville   │ (Management consulting)
-                    │ eWork        │ (Senior desk)
-                    └──────────────┘
-```
-
-### Playwright MCP Integration
-
-For authenticated sites requiring JavaScript rendering:
-
-1. **Playwright MCP Server** runs in Docker with Chrome
-2. **BasePlaywrightScraper** provides browser automation interface
-3. **CinodeScraper** handles login and premium job extraction
-4. **SSE Communication** for real-time browser control
-
-## Typical Consultant Profile Example
-
-**Magnus Andersson** - Enterprise Architect / Business Architect
-- 20+ years experience
-- Former CTO, Interim CTO multiple companies
-- Executive MBA
-- Expertise: Digital Strategy, Enterprise Architecture, Change Management
-- Industries: Healthcare (Karolinska), Finance (Postgirot), AgriTech (DeLaval)
-- Languages: Swedish, English, Danish, Norwegian
-- Rate: 1,500-1,800 SEK/hour
-
-## Target Assignment Examples
-
-✅ **Good Matches:**
-- "Interim CTO för digital transformation" (6-12 months)
-- "Enterprise Architect för molnmigration" (12+ months)  
-- "Programledare strategisk digitalisering" (9 months)
-- "Business Architect för fusionsintegration" (6 months)
-
-❌ **Filtered Out:**
-- "Junior .NET utvecklare" 
-- "React developer 2-5 års erfarenhet"
-- "IT Support specialist"
-- "Scrum Master första uppdraget"
-
-## n8n Integration
-
-### Webhook Endpoints
-
-The system provides dedicated n8n webhook endpoints for workflow automation:
-
-**Job Ingestion Webhook**
-```json
-POST http://localhost:8001/n8n/ingest
-{
-  "source": "n8n_workflow",
-  "jobs": [{
-    "title": "Interim CTO",
-    "company": "Enterprise AB",
-    "seniority": "senior",
-    "min_years_experience": 15
-  }]
-}
+GET  /consultant/                    # Main dashboard
+GET  /consultant/jobs               # Job listings
+GET  /consultant/consultants        # Consultant profiles
+GET  /consultant/matches            # Matching results
+POST /auth/login                    # Authentication
+GET  /health                        # System health
 ```
 
-**Matching Webhook**
-```json
-POST http://localhost:8001/n8n/match
-{
-  "job_ids": ["uuid1", "uuid2"],
-  "min_score": 0.7,
-  "seniority_filter": "senior"
-}
+### Data Management
+```
+POST /jobs/upsert                   # Add/update jobs
+POST /consultants                   # Add consultants
+POST /match/job/{id}                # Generate matches
+GET  /reports/summary               # Executive reports
 ```
 
-## Development
-
-### Testing Scrapers
-```bash
-# Test connectivity to all scraping targets
-python scripts/test_scraper.py --scraper connectivity
-
-# Test Brainville scraper (saves JSON output)
-python scripts/test_scraper.py --scraper brainville
-
-# Test Cinode authenticated scraper
-python scripts/test_scraper.py --scraper cinode
-
-# Test all scrapers
-python scripts/test_scraper.py --scraper all --verbose
+### Scraper Control
+```
+POST /scrape/brainville            # Manual scraping
+GET  /scheduler/status             # Check automation
+POST /scheduler/start              # Start scheduling
 ```
 
-### Database Management
-```bash
-# Access PostgreSQL
-docker-compose exec postgres psql -U postgres -d consultant_matching
+## Technology Stack
 
-# Run schema migrations
-docker-compose exec postgres psql -U postgres -d consultant_matching < db/schema.sql
+**Backend:**
+- FastAPI (Python web framework)
+- PostgreSQL 16 with pgvector extension
+- OpenAI embeddings for semantic matching
+- Redis for caching and sessions
+- APScheduler for automated tasks
 
-# Backup database
-docker-compose exec postgres pg_dump -U postgres consultant_matching > backup.sql
+**Frontend:**
+- Server-side rendered HTML with Jinja2 templates
+- Tailwind CSS with dark theme
+- HTMX for dynamic interactions
+- Glass morphism design system
+- Font Awesome icons
+
+**Infrastructure:**
+- Docker & Docker Compose
+- Nginx reverse proxy
+- SSL/HTTPS with Let's Encrypt
+- Ubuntu 20.04 LTS server
+
+## Data Sources
+
+### Active Scrapers
+1. **Brainville** - Management consulting assignments
+2. **Cinode** - Premium platform with authentication
+3. **eWork/Verama** - Senior consultant marketplace
+
+### Planned Integrations
+- LinkedIn premium job scraping
+- Michael Page executive search
+- Heidrick & Struggles C-level positions
+- Enterprise client direct feeds
+
+## Deployment Information
+
+### Server Details
+- **Host:** 91.98.72.10
+- **OS:** Ubuntu with Docker
+- **Database:** PostgreSQL with pgvector for embeddings
+- **Ports:** API (8002), DB (5444), Redis (6390)
+- **SSL:** Managed through existing nginx configuration
+
+### Environment Configuration
+```env
+# Core Settings
+DATABASE_URL=postgresql://postgres:postgres@consultant_postgres:5432/consultant_matching
+OPENAI_API_KEY=configured
+SECRET_KEY=production-secret
+
+# Scraper Authentication
+CINODE_USERNAME=configured
+CINODE_PASSWORD=configured
+PLAYWRIGHT_ENABLED=true
+
+# Scheduling
+SCHEDULER_ENABLED=true
+SCAN_TIME=07:00
 ```
 
-## Implementation Status
+## Matching Algorithm
 
-### ✅ Completed Components
-- Core database schema with PostgreSQL + pgvector
-- FastAPI backend with executive-focused endpoints
-- Web UI dashboard with Tailwind CSS + HTMX
-- Dual embedding service optimized for strategic language
-- Weighted matching algorithm for senior profiles
-- Brainville web scraper with rate limiting
-- Playwright MCP integration for authenticated sites
-- Cinode scraper with login capability
-- Configuration system for Swedish market
+### Executive-Weighted Scoring
+1. **Strategic Similarity** (35%) - Leadership language matching
+2. **Seniority Match** (25%) - Years experience + role level
+3. **Role Alignment** (15%) - Title and responsibility match
+4. **Industry Experience** (10%) - Sector-specific knowledge
+5. **Leadership Scope** (10%) - Team size, P&L responsibility
+6. **Location Preference** (5%) - Geographic matching
 
-### 🚧 In Progress
-See [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) for roadmap:
+### Filtering Criteria
+- Minimum 15 years experience for executive roles
+- Strategic keywords: transformation, architecture, interim, change
+- Rate expectations: 1,200+ SEK/hour
+- Seniority indicators: Head of, Chief, Director, VP, Architect
 
-1. **Data Ingestion**: ✅ Brainville, Cinode | ⏳ LinkedIn scrapers
-2. **Automation**: Add APScheduler for daily 07:00 scanning
-3. **Enhanced Matching**: Improve executive scoring algorithms
-4. **Notifications**: Slack/Teams integration for reports
-5. **Production**: Security hardening and monitoring
+## Monitoring & Maintenance
 
-### 📋 Next Priority Tasks
-- Implement automated daily scanning at 07:00
-- Add LinkedIn premium job scraper
-- Create Slack/Teams notification delivery
-- Add trend analysis for executive market
-- Implement company prospect scoring
+### Automated Operations
+- **Daily Scanning:** 07:00 CET job ingestion
+- **Weekly Reports:** Friday executive market analysis
+- **Monday Briefs:** Weekly opportunity summaries
+- **Health Checks:** System status monitoring
 
-## License
+### Manual Operations
+- Consultant profile management via web dashboard
+- Manual job upload and parsing
+- Scraper credential updates
+- Match quality review and tuning
 
-MIT
+## Security & Compliance
 
-## Support
+- Secure authentication with role-based access
+- HTTPS/SSL encryption for all communications
+- Database credentials encrypted and rotated
+- Session management with secure cookies
+- Input validation and SQL injection protection
 
-For issues or questions, please open a GitHub issue.
+## Support & Issues
+
+For system issues or feature requests:
+1. Check the live dashboard: https://n8n.cognova.net/consultant/
+2. Review logs via docker-compose logs
+3. Database queries via PostgreSQL admin tools
+4. System health at /health endpoint
+
+---
+
+**Status:** ✅ Production Ready | **Last Updated:** September 2025 | **Version:** 1.0.0
