@@ -1,0 +1,51 @@
+# Scraper Configuration
+# Configure which scrapers to use and their filters
+
+scrapers:
+  ework:
+    enabled: true
+    # Country codes where you have consultants
+    # Options: SE (Sweden), NO (Norway), DK (Denmark), FI (Finland), PL (Poland)
+    countries: 
+      - SE  # Sweden only
+      # - NO  # Uncomment to include Norway
+      # - DK  # Uncomment to include Denmark
+      # - FI  # Uncomment to include Finland
+    
+    # Language requirements
+    languages:
+      - SV  # Swedish
+      - EN  # English
+      # - NO  # Norwegian
+      # - DA  # Danish
+      # - FI  # Finnish
+    
+    # Seniority levels (automatically set to SENIOR and EXPERT)
+    max_pages: 5  # Maximum pages to scrape per run
+
+  brainville:
+    enabled: true
+    # Brainville is Swedish-focused by default
+    max_pages: 10
+
+  cinode:
+    enabled: false  # Enable when credentials are available
+    # Requires CINODE_USERNAME and CINODE_PASSWORD in .env
+    
+  linkedin:
+    enabled: false  # Future implementation
+    # Requires LINKEDIN_USERNAME and LINKEDIN_PASSWORD in .env
+
+# Global settings
+global:
+  # Schedule for automated scanning (cron format)
+  schedule: "0 7 * * *"  # Daily at 07:00
+  
+  # Minimum seniority level for all scrapers
+  min_seniority: "senior"  # Options: junior, mid, senior, expert, executive
+  
+  # Rate limit between requests (seconds)
+  rate_limit: 1.0
+  
+  # Only include jobs posted within last N days
+  max_age_days: 30

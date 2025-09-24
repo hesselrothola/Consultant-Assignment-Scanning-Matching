@@ -13,7 +13,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from app.scrapers import BrainvilleScraper
+from app.scrapers import EworkScraper
 from app.repo import DatabaseRepository
 from app.embeddings import EmbeddingService
 from app.matching import MatchingService
@@ -53,8 +53,9 @@ class ScannerScheduler:
         
         # Configuration
         self.enabled_sources = {
-            'brainville': BrainvilleScraper,
+            'ework': EworkScraper,
             # Add other scrapers as they're implemented:
+            # 'brainville': BrainvilleScraper,
             # 'cinode': CinodeScraper,
             # 'linkedin': LinkedInScraper,
         }
@@ -231,16 +232,23 @@ class ScannerScheduler:
     def _build_scraper_params(self, config, source_override=None) -> Dict[str, Any]:
         """Build scraper parameters from configuration and overrides."""
         params = {
-            'target_skills': config['target_skills'],
-            'target_roles': config['target_roles'],
-            'target_locations': config['target_locations'],
-            'languages': config['languages'],
+            'target_skills': config.get('target_skills') or [],
+            'target_roles': config.get('target_roles') or [],
+            'target_locations': config.get('target_locations') or [],
+            'languages': config.get('languages') or [],
+            'seniority_levels': config.get('seniority_levels') or [],
+            'onsite_modes': config.get('onsite_modes') or [],
+            'contract_durations': config.get('contract_durations') or [],
         }
         
         # Apply source-specific overrides
         if source_override and source_override['parameter_overrides']:
             params.update(source_override['parameter_overrides'])
-        
+
+        # Normalise override keys expected by scrapers
+        if 'levels' in params and 'seniority_levels' not in params:
+            params['seniority_levels'] = params.pop('levels')
+
         return params
     
     async def _generate_matches_for_jobs(self, jobs) -> List:

@@ -71,51 +71,89 @@
         </div>
     </div>
 
-    <!-- Manual Scan -->
+    <!-- Manual Criteria & Scan -->
     <div class="bg-primary-dark p-6 rounded-lg shadow-lg">
-        <h3 class="text-lg font-medium leading-6 text-primary-text-dark">Manual Scan</h3>
-        <p class="mt-2 max-w-xl text-sm text-secondary-text-dark">Trigger a manual scan for specific sources or run all scrapers.</p>
-        
-        <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div class="bg-secondary-dark rounded-lg p-4">
-                <h4 class="text-sm font-medium text-primary-text-dark mb-2">eWork/Verama</h4>
-                <p class="text-xs text-secondary-text-dark mb-3">Consultant marketplace platform</p>
-                <button type="button" hx-post="/scrape/ework" hx-target="#ework-result" class="w-full inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                    <i class="fas fa-sync-alt mr-2"></i>Scan eWork
-                </button>
-                <div id="ework-result" class="mt-2 text-xs text-secondary-text-dark"></div>
+        <div class="flex flex-col gap-6 lg:flex-row">
+            <div class="flex-1">
+                <h3 class="text-lg font-medium leading-6 text-primary-text-dark">Executive Scanning Criteria</h3>
+                <p class="mt-2 max-w-2xl text-sm text-secondary-text-dark">
+                    Saved manual criteria target C-level, enterprise architecture, and transformation leadership roles. Update these filters to refine what the Verama scan collects while consultant profiles are still being onboarded.
+                </p>
+
+                <form class="mt-5 space-y-4" hx-post="/consultant/scanner/manual-config" hx-target="#manual-config-feedback" hx-swap="innerHTML">
+                    <input type="hidden" name="config_id" value="{{ manual_form.config_id }}">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-text-dark">Target Roles &amp; Titles</label>
+                            <textarea name="target_roles" rows="5" class="mt-1 block w-full rounded-md bg-secondary-dark border border-gray-700 text-primary-text-dark focus:border-accent-dark focus:ring-accent-dark" placeholder="Interim CTO&#10;Enterprise Architect&#10;Program Director">{{ manual_form.target_roles_text }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-text-dark">Target Keywords (optional)</label>
+                            <textarea name="target_keywords" rows="5" class="mt-1 block w-full rounded-md bg-secondary-dark border border-gray-700 text-primary-text-dark focus:border-accent-dark focus:ring-accent-dark" placeholder="Digital transformation&#10;Change leadership">{{ manual_form.target_keywords_text }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-text-dark">Strategic Skills / Focus Areas</label>
+                            <textarea name="target_skills" rows="4" class="mt-1 block w-full rounded-md bg-secondary-dark border border-gray-700 text-primary-text-dark focus:border-accent-dark focus:ring-accent-dark" placeholder="Enterprise Architecture&#10;M&A Integration">{{ manual_form.target_skills_text }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-text-dark">Focus Locations</label>
+                            <textarea name="target_locations" rows="4" class="mt-1 block w-full rounded-md bg-secondary-dark border border-gray-700 text-primary-text-dark focus:border-accent-dark focus:ring-accent-dark" placeholder="Stockholm&#10;Göteborg&#10;Remote">{{ manual_form.target_locations_text }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-text-dark">Languages (comma-separated)</label>
+                            <input name="languages" value="{{ manual_form.languages_text }}" class="mt-1 block w-full rounded-md bg-secondary-dark border border-gray-700 text-primary-text-dark focus:border-accent-dark focus:ring-accent-dark" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-text-dark">Seniority Levels</label>
+                            <input name="seniority_levels" value="{{ manual_form.seniority_levels_text }}" class="mt-1 block w-full rounded-md bg-secondary-dark border border-gray-700 text-primary-text-dark focus:border-accent-dark focus:ring-accent-dark" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-text-dark">Preferred Work Modes</label>
+                            <input name="onsite_modes" value="{{ manual_form.onsite_modes_text }}" class="mt-1 block w-full rounded-md bg-secondary-dark border border-gray-700 text-primary-text-dark focus:border-accent-dark focus:ring-accent-dark" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-text-dark">Countries</label>
+                            <input name="countries" value="{{ manual_form.countries_text }}" class="mt-1 block w-full rounded-md bg-secondary-dark border border-gray-700 text-primary-text-dark focus:border-accent-dark focus:ring-accent-dark" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-text-dark">Verama Level Filters</label>
+                            <input name="levels" value="{{ manual_form.levels_text }}" class="mt-1 block w-full rounded-md bg-secondary-dark border border-gray-700 text-primary-text-dark focus:border-accent-dark focus:ring-accent-dark" />
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <div class="text-xs text-secondary-text-dark">
+                            {% if manual_form.updated_at %}
+                                Last updated: {{ manual_form.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                Using default executive criteria
+                            {% endif %}
+                        </div>
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-accent-dark hover:bg-accent-dark/80">
+                            Save Criteria
+                        </button>
+                    </div>
+                </form>
+                <div id="manual-config-feedback"></div>
             </div>
-            
-            <div class="bg-secondary-dark rounded-lg p-4">
-                <h4 class="text-sm font-medium text-primary-text-dark mb-2">Brainville</h4>
-                <p class="text-xs text-secondary-text-dark mb-3">IT consulting assignments</p>
-                <button type="button" hx-post="/scrape/brainville" hx-target="#brainville-result" class="w-full inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                    <i class="fas fa-sync-alt mr-2"></i>Scan Brainville
-                </button>
-                <div id="brainville-result" class="mt-2 text-xs text-secondary-text-dark"></div>
-            </div>
-            
-            <div class="bg-secondary-dark rounded-lg p-4">
-                <h4 class="text-sm font-medium text-primary-text-dark mb-2">Cinode</h4>
-                <p class="text-xs text-secondary-text-dark mb-3">Consultant network marketplace</p>
-                <button type="button" hx-post="/scrape/cinode" hx-target="#cinode-result" class="w-full inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
-                    <i class="fas fa-sync-alt mr-2"></i>Scan Cinode
-                </button>
-                <div id="cinode-result" class="mt-2 text-xs text-secondary-text-dark"></div>
-            </div>
-        </div>
-        
-        <div class="mt-6 border-t border-gray-700 pt-6">
-            <form hx-post="/consultant/scanner/trigger" hx-target="#scan-result" class="flex justify-between items-center">
-                <div>
-                    <h4 class="text-sm font-medium text-primary-text-dark">Run All Scrapers</h4>
-                    <p class="text-xs text-secondary-text-dark mt-1">Execute all enabled scrapers with default configuration</p>
+
+            <div class="w-full lg:max-w-sm bg-secondary-dark rounded-lg p-5 space-y-4">
+                <h4 class="text-md font-semibold text-primary-text-dark">Run Verama Scan</h4>
+                <p class="text-sm text-secondary-text-dark">
+                    Executes the Verama API scan using the saved executive criteria. Monitor the log below for results and ingest counts.
+                </p>
+                <form hx-post="/consultant/scanner/trigger" hx-target="#manual-run-result" class="space-y-3">
+                    <input type="hidden" name="config_id" value="{{ manual_form.config_id }}">
+                    <button type="submit" class="w-full inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        <i class="fas fa-sync-alt mr-2"></i>Run Verama Scan Now
+                    </button>
+                </form>
+                <div id="manual-run-result" class="text-xs text-secondary-text-dark"></div>
+                <div class="text-xs text-secondary-text-dark">
+                    Tip: once consultant profiles are live, their skills will automatically enrich these searches. Manual overrides remain available.
                 </div>
-                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-accent-dark hover:bg-accent-dark/80">
-                    <i class="fas fa-cogs mr-2"></i>Run All Scrapers
-                </button>
-            </form>
-            <div id="scan-result" class="mt-4 text-sm text-secondary-text-dark"></div>
+            </div>
         </div>
     </div>
 
@@ -138,7 +176,13 @@
                     <tbody class="bg-primary-dark divide-y divide-gray-700" hx-get="/api/scanner/logs" hx-trigger="load, every 30s">
                         {% for log in recent_logs %}
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-primary-text-dark">{{ log.started_at }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-primary-text-dark">
+                                {% if log.started_at %}
+                                    {{ log.started_at.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-text-dark">{{ log.source }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                 {% if log.status == "completed" %}
@@ -152,10 +196,12 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-text-dark">{{ log.found_count }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-text-dark">{{ log.upserted_count }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-text-dark">
-                                {% if log.finished_at and log.started_at %}
-                                    {{ (log.finished_at - log.started_at).total_seconds()|round(2) }}s
-                                {% else %}
+                                {% if log.duration_seconds is not none %}
+                                    {{ '{:.2f}'.format(log.duration_seconds) }}s
+                                {% elif log.status == 'running' %}
                                     Running...
+                                {% else %}
+                                    -
                                 {% endif %}
                             </td>
                         </tr>

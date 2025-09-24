@@ -1,0 +1,51 @@
+Erik Johansson
+Senior Cloud Architect & DevOps Lead
+Stockholm, Sweden
+erik.johansson@example.com
++46 70 123 4567
+
+PROFESSIONAL SUMMARY
+Experienced Cloud Architect with 15+ years in enterprise cloud transformation and DevOps practices. 
+Specialized in AWS, Azure, and Kubernetes implementations for large-scale organizations.
+Former CTO at tech startup, now focusing on senior consulting assignments.
+
+SKILLS
+Cloud Platforms: AWS, Azure, Google Cloud Platform
+Container Orchestration: Kubernetes, Docker, OpenShift
+Infrastructure as Code: Terraform, CloudFormation, Pulumi
+Programming: Python, Go, TypeScript, Java
+DevOps: Jenkins, GitLab CI, ArgoCD, GitHub Actions
+Monitoring: Prometheus, Grafana, DataDog, ELK Stack
+Languages: Swedish (Native), English (Fluent), Norwegian (Professional)
+
+EXPERIENCE
+Senior Cloud Architect - Independent Consultant (2020-Present)
+- Leading cloud transformation for Swedish enterprises
+- Designing multi-cloud strategies for financial institutions
+- Implementing zero-trust security architectures
+- Rate: 1,600 SEK/hour
+
+Technical Lead - Spotify (2018-2020)
+- Architected microservices platform serving 400M users
+- Led team of 12 engineers in platform modernization
+- Reduced infrastructure costs by 35% through optimization
+
+CTO - TechStartup AB (2015-2018)
+- Built engineering team from 2 to 25 developers
+- Designed and implemented cloud-native SaaS platform
+- Successfully scaled to 100k enterprise users
+
+CERTIFICATIONS
+- AWS Solutions Architect Professional
+- Certified Kubernetes Administrator (CKA)
+- Azure Solutions Architect Expert
+- TOGAF 9 Certified
+
+EDUCATION
+MSc Computer Science - KTH Royal Institute of Technology (2008)
+Executive MBA - Stockholm School of Economics (2019)
+
+AVAILABILITY
+Available immediately for senior architect roles
+Preferred: Hybrid/Remote with occasional onsite in Stockholm
+Open to: Long-term engagements (6-12 months)

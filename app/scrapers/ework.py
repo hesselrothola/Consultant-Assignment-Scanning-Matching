@@ -22,7 +22,16 @@ class EworkScraper(BaseScraper):
     Focuses on Swedish and Nordic senior consultant positions.
     """
     
-    def __init__(self, countries: List[str] = None, languages: List[str] = None):
+    def __init__(
+        self,
+        countries: Optional[List[str]] = None,
+        languages: Optional[List[str]] = None,
+        seniority_levels: Optional[List[str]] = None,
+        target_roles: Optional[List[str]] = None,
+        target_keywords: Optional[List[str]] = None,
+        onsite_modes: Optional[List[str]] = None,
+        target_locations: Optional[List[str]] = None
+    ):
         """
         Initialize eWork scraper with configurable filters.
         
@@ -40,9 +49,18 @@ class EworkScraper(BaseScraper):
         self.job_listings_url = f"{self.api_base}/job-requests"
         self.max_pages = 5  # Limit pages to scrape
         
-        # Country filter - default to Sweden only
+        # Filters provided via configuration/overrides
         self.countries = countries or ["SE"]
-        
+        self.languages = [lang.upper() for lang in (languages or ["SV", "EN"])]
+        self.levels = [level.upper() for level in (seniority_levels or ["SENIOR", "EXPERT"])]
+        self.level_set = set(self.levels)
+        self.target_roles = target_roles or []
+        self.target_keywords = target_keywords or target_roles or []
+        self.onsite_modes = [mode.lower() for mode in (onsite_modes or ["onsite", "hybrid", "remote"])]
+        self.onsite_mode_set = set(self.onsite_modes)
+        self.target_locations = [loc.lower() for loc in (target_locations or [])]
+        self.location_set = set(self.target_locations)
+
         # Map country codes to country names used by eWork
         self.country_mapping = {
             "SE": "Sverige",
@@ -57,8 +75,8 @@ class EworkScraper(BaseScraper):
         
         # Filters for senior/expert positions
         self.default_params = {
-            "languages": languages or ["SV", "EN"],  # Swedish and English by default
-            "level": ["SENIOR", "EXPERT"],  # Only senior and expert levels
+            "languages": self.languages,
+            "level": self.levels,
             "sort": "firstDayOfApplications,DESC",  # Latest first
             "size": 50  # Jobs per page
         }
@@ -105,8 +123,16 @@ class EworkScraper(BaseScraper):
                     parsed_job = self.parse_job(job_data)
                     if parsed_job:
                         # Filter by country if configured
-                        if self.should_include_job(parsed_job):
-                            all_listings.append(parsed_job)
+                        if not self.should_include_job(parsed_job):
+                            continue
+
+                        if not self.matches_seniority(parsed_job):
+                            continue
+
+                        if not self.matches_target_profile(parsed_job):
+                            continue
+
+                        all_listings.append(parsed_job)
                 
                 # Check if there are more pages
                 if data.get("last", True):
@@ -267,36 +293,81 @@ class EworkScraper(BaseScraper):
         Returns:
             True if job should be included, False otherwise
         """
-        # If no country filter, include all
-        if not self.countries:
+        # Country filter
+        if self.countries:
+            job_country = (job.get('location_country') or "").lower()
+            country_match = False
+
+            for country_code in self.countries:
+                country_name = self.country_mapping.get(country_code, country_code)
+                if country_code.lower() in job_country or country_name.lower() in job_country:
+                    country_match = True
+                    break
+
+                country_variations = {
+                    "SE": ["sweden", "sverige", "se"],
+                    "NO": ["norway", "norge", "no"],
+                    "DK": ["denmark", "danmark", "dk"],
+                    "FI": ["finland", "suomi", "fi"],
+                    "PL": ["poland", "polen", "polska", "pl"],
+                }
+
+                if country_code in country_variations:
+                    if any(variation in job_country for variation in country_variations[country_code]):
+                        country_match = True
+                        break
+
+            if not country_match:
+                return False
+
+        # Onsite mode filter
+        if self.onsite_mode_set:
+            job_mode = (job.get('onsite_mode') or "").lower()
+            if job_mode and job_mode not in self.onsite_mode_set:
+                return False
+
+        # Location filter
+        if self.location_set:
+            job_city = (job.get('location_city') or "").lower()
+            job_location_text = f"{job_city} {(job.get('location_country') or '').lower()}"
+            if job_location_text:
+                if not any(loc in job_location_text for loc in self.location_set):
+                    # Allow remote/hybrid listings even if city not matched
+                    job_mode = (job.get('onsite_mode') or "").lower()
+                    if job_mode not in ("remote", "hybrid"):
+                        return False
+
+        return True
+
+    def matches_seniority(self, job: Dict[str, Any]) -> bool:
+        """Verify that the job seniority matches desired executive levels."""
+        if not self.levels:
             return True
-        
-        # Get job country
-        job_country = job.get('location_country', '')
-        
-        # Check against our country filter
-        for country_code in self.countries:
-            country_name = self.country_mapping.get(country_code, country_code)
-            # Check both country code and country name
-            if country_code.upper() in job_country.upper() or country_name.lower() in job_country.lower():
-                return True
-        
-        # Also check if the country matches common variations
-        country_variations = {
-            "SE": ["sweden", "sverige", "se"],
-            "NO": ["norway", "norge", "no"],
-            "DK": ["denmark", "danmark", "dk"],
-            "FI": ["finland", "suomi", "fi"],
-            "PL": ["poland", "polen", "polska", "pl"],
-        }
-        
-        for country_code in self.countries:
-            if country_code in country_variations:
-                for variation in country_variations[country_code]:
-                    if variation in job_country.lower():
-                        return True
-        
-        return False
+        job_level = job.get('seniority')
+        if not job_level:
+            return False
+        return job_level.upper() in self.level_set
+
+    def matches_target_profile(self, job: Dict[str, Any]) -> bool:
+        """Check whether the job aligns with executive target roles/keywords."""
+        keywords = [kw.lower() for kw in (self.target_keywords or []) if kw]
+        roles = [role.lower() for role in (self.target_roles or []) if role]
+        search_terms = keywords or roles
+        if not search_terms:
+            return True
+
+        text_parts = [job.get('title', ''), job.get('role', '')]
+        if job.get('skills'):
+            text_parts.append(' '.join(job['skills']))
+
+        raw = job.get('raw_json') or {}
+        for key in ('missionDescription', 'requirementDescription', 'description', 'descriptionText'):
+            value = raw.get(key)
+            if value:
+                text_parts.append(value)
+
+        haystack = ' '.join(text_parts).lower()
+        return any(term in haystack for term in search_terms)
     
     def parse_listing(self, listing_element) -> Optional[Dict[str, Any]]:
         """Parse a single job listing element - not used for API-based scraper."""

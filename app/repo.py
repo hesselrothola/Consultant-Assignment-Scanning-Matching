@@ -13,6 +13,61 @@ from app.models import (
 )
 
 
+DEFAULT_EXECUTIVE_ROLES = [
+    "Interim CTO",
+    "Interim CIO",
+    "Chief Digital Officer",
+    "Transformation Director",
+    "Enterprise Architect",
+    "Business Architect",
+    "Solution Architect",
+    "Data Architect",
+    "Program Manager",
+    "Program Director",
+    "Change Manager",
+    "Change Lead",
+    "Transformation Lead",
+    "M&A Integration Lead",
+    "Head of Development",
+    "Head of Engineering",
+    "Head of R&D",
+    "R&D Director",
+    "Engineering Director",
+    "Engineering VP",
+    "Technology Director",
+    "Chief Architect",
+    "Digital Transformation Manager",
+    "Head of Digital",
+    "Program Leader"
+]
+
+DEFAULT_EXECUTIVE_SKILLS = [
+    "Digital Transformation",
+    "Change Management",
+    "Enterprise Architecture",
+    "Program Leadership",
+    "Strategic Planning",
+    "Technology Strategy",
+    "M&A Integration",
+    "Innovation Management"
+]
+
+DEFAULT_EXECUTIVE_LOCATIONS = [
+    "Stockholm",
+    "Göteborg",
+    "Gothenburg",
+    "Malmö",
+    "Remote",
+    "Hybrid"
+]
+
+DEFAULT_EXECUTIVE_LANGUAGES = ["SV", "EN"]
+DEFAULT_EXECUTIVE_SENIORITY = ["Senior", "Executive", "C-level"]
+DEFAULT_EXECUTIVE_ONSITE = ["onsite", "hybrid", "remote"]
+DEFAULT_VERAMA_LEVELS = ["SENIOR", "EXPERT"]
+DEFAULT_VERAMA_COUNTRIES = ["SE"]
+
+
 class DatabaseRepository:
     def __init__(self, db_url: str):
         self.db_url = db_url
@@ -611,19 +666,27 @@ class DatabaseRepository:
                 LIMIT $1
             """
             rows = await conn.fetch(query, limit)
-            return [
-                {
+            results = []
+            for row in rows:
+                started_at = row['started_at']
+                finished_at = row['finished_at']
+                duration_seconds = None
+                if started_at and finished_at:
+                    duration_seconds = (finished_at - started_at).total_seconds()
+
+                results.append({
                     'run_id': str(row['run_id']),
                     'source': row['source'],
                     'status': row['status'],
                     'found_count': row['found_count'],
                     'upserted_count': row['upserted_count'],
                     'skipped_count': row['skipped_count'],
-                    'started_at': row['started_at'].isoformat() if row['started_at'] else None,
-                    'finished_at': row['finished_at'].isoformat() if row['finished_at'] else None
-                }
-                for row in rows
-            ]
+                    'started_at': started_at,
+                    'finished_at': finished_at,
+                    'duration_seconds': duration_seconds
+                })
+
+            return results
     
     # User authentication methods
     async def create_user(self, username: str, email: str, full_name: str, 
@@ -835,6 +898,96 @@ class DatabaseRepository:
             row = await conn.fetchrow(query, config_id)
             return dict(row) if row else None
 
+    async def get_scanning_config_by_name(self, config_name: str) -> Optional[Dict[str, Any]]:
+        """Fetch a scanning configuration by its unique name."""
+        async with self.pool.acquire() as conn:
+            query = """
+                SELECT 
+                    config_id,
+                    config_name,
+                    description,
+                    target_skills,
+                    target_roles,
+                    seniority_levels,
+                    target_locations,
+                    languages,
+                    contract_durations,
+                    onsite_modes,
+                    total_matches_generated,
+                    successful_placements,
+                    last_match_score,
+                    performance_score,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM scanning_configs
+                WHERE config_name = $1
+            """
+            row = await conn.fetchrow(query, config_name)
+            return dict(row) if row else None
+
+    async def create_scanning_config(self,
+                                     config_name: str,
+                                     description: str = "",
+                                     target_skills: Optional[List[str]] = None,
+                                     target_roles: Optional[List[str]] = None,
+                                     seniority_levels: Optional[List[str]] = None,
+                                     target_locations: Optional[List[str]] = None,
+                                     languages: Optional[List[str]] = None,
+                                     contract_durations: Optional[List[str]] = None,
+                                     onsite_modes: Optional[List[str]] = None,
+                                     is_active: bool = True) -> Dict[str, Any]:
+        """Create a new scanning configuration."""
+        async with self.pool.acquire() as conn:
+            query = """
+                INSERT INTO scanning_configs (
+                    config_name,
+                    description,
+                    target_skills,
+                    target_roles,
+                    seniority_levels,
+                    target_locations,
+                    languages,
+                    contract_durations,
+                    onsite_modes,
+                    is_active
+                ) VALUES (
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+                )
+                RETURNING 
+                    config_id,
+                    config_name,
+                    description,
+                    target_skills,
+                    target_roles,
+                    seniority_levels,
+                    target_locations,
+                    languages,
+                    contract_durations,
+                    onsite_modes,
+                    total_matches_generated,
+                    successful_placements,
+                    last_match_score,
+                    performance_score,
+                    is_active,
+                    created_at,
+                    updated_at
+            """
+            row = await conn.fetchrow(
+                query,
+                config_name,
+                description,
+                target_skills or [],
+                target_roles or [],
+                seniority_levels or [],
+                target_locations or [],
+                languages or [],
+                contract_durations or [],
+                onsite_modes or [],
+                is_active
+            )
+            return dict(row)
+
     async def get_source_config_overrides(self, config_id: UUID) -> List[Dict[str, Any]]:
         """Get source-specific configuration overrides for a scanning config"""
         async with self.pool.acquire() as conn:
@@ -854,6 +1007,173 @@ class DatabaseRepository:
             """
             rows = await conn.fetch(query, config_id)
             return [dict(row) for row in rows]
+
+    async def get_source_override(self, config_id: UUID, source_name: str) -> Optional[Dict[str, Any]]:
+        """Get a specific source override."""
+        async with self.pool.acquire() as conn:
+            query = """
+                SELECT 
+                    override_id,
+                    config_id,
+                    source_name,
+                    parameter_overrides,
+                    last_run_at,
+                    success_rate,
+                    avg_matches_per_run,
+                    is_enabled
+                FROM source_config_overrides
+                WHERE config_id = $1 AND source_name = $2
+            """
+            row = await conn.fetchrow(query, config_id, source_name)
+            return dict(row) if row else None
+
+    async def upsert_source_override(self,
+                                     config_id: UUID,
+                                     source_name: str,
+                                     parameter_overrides: Dict[str, Any],
+                                     is_enabled: bool = True) -> Dict[str, Any]:
+        """Insert or update a source override."""
+        async with self.pool.acquire() as conn:
+            query = """
+                INSERT INTO source_config_overrides (
+                    config_id,
+                    source_name,
+                    parameter_overrides,
+                    is_enabled,
+                    last_run_at,
+                    success_rate,
+                    avg_matches_per_run
+                ) VALUES (
+                    $1, $2, $3, $4, NULL, NULL, NULL
+                )
+                ON CONFLICT (config_id, source_name)
+                DO UPDATE SET
+                    parameter_overrides = EXCLUDED.parameter_overrides,
+                    is_enabled = EXCLUDED.is_enabled
+                RETURNING 
+                    override_id,
+                    config_id,
+                    source_name,
+                    parameter_overrides,
+                    last_run_at,
+                    success_rate,
+                    avg_matches_per_run,
+                    is_enabled
+            """
+            row = await conn.fetchrow(
+                query,
+                config_id,
+                source_name,
+                json.dumps(parameter_overrides),
+                is_enabled
+            )
+            return dict(row)
+
+    async def ensure_manual_scanning_config(self) -> Dict[str, Any]:
+        """Ensure a manual override scanning configuration exists and return it with overrides."""
+        config_name = "Manual Executive Override"
+        config = await self.get_scanning_config_by_name(config_name)
+
+        if not config:
+            config = await self.create_scanning_config(
+                config_name=config_name,
+                description="Manual executive scanning criteria",
+                target_skills=DEFAULT_EXECUTIVE_SKILLS,
+                target_roles=DEFAULT_EXECUTIVE_ROLES,
+                seniority_levels=DEFAULT_EXECUTIVE_SENIORITY,
+                target_locations=DEFAULT_EXECUTIVE_LOCATIONS,
+                languages=DEFAULT_EXECUTIVE_LANGUAGES,
+                onsite_modes=DEFAULT_EXECUTIVE_ONSITE,
+                is_active=True
+            )
+
+        override = await self.get_source_override(config['config_id'], 'ework')
+        if not override:
+            override = await self.upsert_source_override(
+                config_id=config['config_id'],
+                source_name='ework',
+                parameter_overrides={
+                    'countries': DEFAULT_VERAMA_COUNTRIES,
+                    'languages': DEFAULT_EXECUTIVE_LANGUAGES,
+                    'levels': DEFAULT_VERAMA_LEVELS,
+                    'target_roles': DEFAULT_EXECUTIVE_ROLES,
+                    'target_keywords': DEFAULT_EXECUTIVE_ROLES,
+                    'onsite_modes': DEFAULT_EXECUTIVE_ONSITE
+                },
+                is_enabled=True
+            )
+
+        config['manual_override'] = override
+        return config
+
+    async def update_manual_scanning_config(self,
+                                            config_id: UUID,
+                                            *,
+                                            target_skills: List[str],
+                                            target_roles: List[str],
+                                            seniority_levels: List[str],
+                                            target_locations: List[str],
+                                            languages: List[str],
+                                            onsite_modes: List[str],
+                                            contract_durations: Optional[List[str]] = None,
+                                            source_overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Update manual scanning configuration and associated overrides."""
+        async with self.pool.acquire() as conn:
+            query = """
+                UPDATE scanning_configs
+                SET 
+                    target_skills = $2,
+                    target_roles = $3,
+                    seniority_levels = $4,
+                    target_locations = $5,
+                    languages = $6,
+                    contract_durations = $7,
+                    onsite_modes = $8,
+                    updated_at = now()
+                WHERE config_id = $1
+                RETURNING 
+                    config_id,
+                    config_name,
+                    description,
+                    target_skills,
+                    target_roles,
+                    seniority_levels,
+                    target_locations,
+                    languages,
+                    contract_durations,
+                    onsite_modes,
+                    total_matches_generated,
+                    successful_placements,
+                    last_match_score,
+                    performance_score,
+                    is_active,
+                    created_at,
+                    updated_at
+            """
+            row = await conn.fetchrow(
+                query,
+                config_id,
+                target_skills,
+                target_roles,
+                seniority_levels,
+                target_locations,
+                languages,
+                contract_durations or [],
+                onsite_modes
+            )
+
+        if source_overrides is not None:
+            await self.upsert_source_override(
+                config_id=config_id,
+                source_name='ework',
+                parameter_overrides=source_overrides,
+                is_enabled=True
+            )
+
+        updated_config = dict(row)
+        override = await self.get_source_override(config_id, 'ework')
+        updated_config['manual_override'] = override
+        return updated_config
 
     async def log_config_performance(self, performance_data: Dict[str, Any]):
         """Log performance metrics for a scanning configuration"""

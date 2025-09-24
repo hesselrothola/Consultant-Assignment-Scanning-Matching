@@ -876,6 +876,13 @@ async def get_scraper_status(
     try:
         # Get recent ingestion logs
         recent_logs = await db.get_recent_ingestion_logs(limit=10)
+        serialized_logs = []
+        for log in recent_logs:
+            serialized_logs.append({
+                **log,
+                'started_at': log['started_at'].isoformat() if log.get('started_at') else None,
+                'finished_at': log['finished_at'].isoformat() if log.get('finished_at') else None,
+            })
         
         # Get scraper configurations
         scraper_status = {}
@@ -889,7 +896,7 @@ async def get_scraper_status(
         
         return {
             "scrapers": scraper_status,
-            "recent_ingestions": recent_logs,
+            "recent_ingestions": serialized_logs,
             "scraping_enabled": settings.scraping_enabled
         }
         

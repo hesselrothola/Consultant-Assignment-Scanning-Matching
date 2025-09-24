@@ -3,6 +3,8 @@ Frontend routes for the consultant matching system
 Uses FastAPI with HTMX for dynamic interactions without heavy JavaScript
 """
 
+import re
+
 from fastapi import APIRouter, Request, Form, Query, BackgroundTasks, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -12,10 +14,54 @@ from datetime import datetime, timezone
 from uuid import UUID
 # from app.auth import get_current_user, require_user  # Removed to avoid circular imports
 
+from app.repo import (
+    DEFAULT_EXECUTIVE_LANGUAGES,
+    DEFAULT_EXECUTIVE_LOCATIONS,
+    DEFAULT_EXECUTIVE_ONSITE,
+    DEFAULT_EXECUTIVE_ROLES,
+    DEFAULT_EXECUTIVE_SENIORITY,
+    DEFAULT_EXECUTIVE_SKILLS,
+    DEFAULT_VERAMA_COUNTRIES,
+    DEFAULT_VERAMA_LEVELS,
+)
+
 router = APIRouter(prefix="/consultant", tags=["frontend"])
 
 # Setup Jinja2 templates
 templates = Jinja2Templates(directory="app/templates")
+
+
+def _split_to_list(value: str, *, to_upper: bool = False, to_lower: bool = False) -> List[str]:
+    """Split textarea or comma-separated input into a list of unique strings."""
+    if not value:
+        return []
+
+    items = []
+    for part in re.split(r'[\n,]', value):
+        cleaned = part.strip()
+        if not cleaned:
+            continue
+        if to_upper:
+            cleaned = cleaned.upper()
+        elif to_lower:
+            cleaned = cleaned.lower()
+        items.append(cleaned)
+
+    # Preserve order while removing duplicates
+    seen = set()
+    unique_items = []
+    for item in items:
+        if item in seen:
+            continue
+        seen.add(item)
+        unique_items.append(item)
+    return unique_items
+
+
+def _list_to_text(values: Optional[List[str]], separator: str = "\n") -> str:
+    if not values:
+        return ""
+    return separator.join(values)
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_alt(request: Request):
@@ -159,21 +205,126 @@ async def config_details(request: Request, config_id: UUID):
 async def scanner_control(request: Request):
     """Scanner control panel"""
     from app.main import scanner_scheduler
-    
+
     # Get scheduler status
     status = "running" if scanner_scheduler.scheduler.running else "stopped"
     jobs = scanner_scheduler.scheduler.get_jobs()
-    
+
     # Get recent scan logs
     from app.main import db_repo
     recent_logs = await db_repo.get_recent_ingestion_logs(limit=10)
-    
+
+    manual_config = await db_repo.ensure_manual_scanning_config()
+    manual_override = manual_config.get('manual_override') or {}
+    override_params = manual_override.get('parameter_overrides') or {}
+
+    target_roles = manual_config.get('target_roles') or DEFAULT_EXECUTIVE_ROLES
+    target_skills = manual_config.get('target_skills') or DEFAULT_EXECUTIVE_SKILLS
+    target_locations = manual_config.get('target_locations') or DEFAULT_EXECUTIVE_LOCATIONS
+    languages = manual_config.get('languages') or DEFAULT_EXECUTIVE_LANGUAGES
+    onsite_modes = manual_config.get('onsite_modes') or DEFAULT_EXECUTIVE_ONSITE
+    seniority_levels = manual_config.get('seniority_levels') or DEFAULT_EXECUTIVE_SENIORITY
+    countries = override_params.get('countries') or DEFAULT_VERAMA_COUNTRIES
+    levels = override_params.get('levels') or DEFAULT_VERAMA_LEVELS
+    target_keywords = override_params.get('target_keywords') or target_roles
+
+    manual_form = {
+        "config_id": str(manual_config['config_id']),
+        "target_roles_text": _list_to_text(target_roles),
+        "target_skills_text": _list_to_text(target_skills),
+        "target_keywords_text": _list_to_text(target_keywords),
+        "target_locations_text": _list_to_text(target_locations),
+        "languages_text": ', '.join(languages),
+        "onsite_modes_text": ', '.join(onsite_modes),
+        "seniority_levels_text": ', '.join(seniority_levels),
+        "countries_text": ', '.join(countries),
+        "levels_text": ', '.join(levels),
+        "updated_at": manual_config.get('updated_at'),
+    }
+
     return templates.TemplateResponse("scanner.html", {
         "request": request,
         "scheduler_status": status,
         "jobs": jobs,
-        "recent_logs": recent_logs
+        "recent_logs": recent_logs,
+        "manual_form": manual_form,
+        "manual_config": manual_config,
+        "manual_override": override_params
     })
+
+
+@router.post("/scanner/manual-config", response_class=HTMLResponse)
+async def update_manual_scanner_config(
+    request: Request,
+    config_id: UUID = Form(...),
+    target_roles: str = Form(""),
+    target_keywords: str = Form(""),
+    target_skills: str = Form(""),
+    target_locations: str = Form(""),
+    languages: str = Form(""),
+    onsite_modes: str = Form(""),
+    seniority_levels: str = Form(""),
+    countries: str = Form(""),
+    levels: str = Form("")
+):
+    """Update manual scanning criteria used by the Verama scraper."""
+    from app.main import db_repo
+
+    roles_list = _split_to_list(target_roles)
+    keywords_list = _split_to_list(target_keywords)
+    skills_list = _split_to_list(target_skills)
+    locations_list = _split_to_list(target_locations)
+    languages_list = _split_to_list(languages, to_upper=True)
+    onsite_list = _split_to_list(onsite_modes, to_lower=True)
+    seniority_list = _split_to_list(seniority_levels)
+    countries_list = _split_to_list(countries, to_upper=True)
+    levels_list = _split_to_list(levels, to_upper=True)
+
+    if not roles_list:
+        roles_list = DEFAULT_EXECUTIVE_ROLES
+    if not keywords_list:
+        keywords_list = roles_list
+    if not skills_list:
+        skills_list = DEFAULT_EXECUTIVE_SKILLS
+    if not locations_list:
+        locations_list = DEFAULT_EXECUTIVE_LOCATIONS
+    if not languages_list:
+        languages_list = DEFAULT_EXECUTIVE_LANGUAGES
+    if not onsite_list:
+        onsite_list = DEFAULT_EXECUTIVE_ONSITE
+    if not seniority_list:
+        seniority_list = DEFAULT_EXECUTIVE_SENIORITY
+    if not countries_list:
+        countries_list = DEFAULT_VERAMA_COUNTRIES
+    if not levels_list:
+        levels_list = DEFAULT_VERAMA_LEVELS
+
+    overrides = {
+        'countries': countries_list,
+        'languages': languages_list,
+        'levels': levels_list,
+        'target_roles': roles_list,
+        'target_keywords': keywords_list,
+        'onsite_modes': onsite_list,
+    }
+
+    await db_repo.update_manual_scanning_config(
+        config_id=config_id,
+        target_skills=skills_list,
+        target_roles=roles_list,
+        seniority_levels=seniority_list,
+        target_locations=locations_list,
+        languages=languages_list,
+        onsite_modes=onsite_list,
+        contract_durations=[],
+        source_overrides=overrides
+    )
+
+    return HTMLResponse(
+        """
+        <div class=\"text-green-400 text-sm mt-2\">Manual criteria saved. Future scans will use the updated settings.</div>
+        """
+    )
 
 @router.post("/scanner/trigger", response_class=HTMLResponse)
 async def trigger_scan(

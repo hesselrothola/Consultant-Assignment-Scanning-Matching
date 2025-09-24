@@ -1,17 +1,16 @@
-# Swedish Enterprise Consultant Assignment Matching System
+# Swedish Consultant Assignment Scanning & Matching System
 
-🚀 **LIVE SYSTEM** - AI-powered platform for matching senior-level consultants with executive assignments in the Swedish consulting market.
+🔍 **SCANNING-FIRST DASHBOARD** - Continuously monitors Swedish consultant assignment portals with layered matching, analytics, and intelligence features.
 
 **🌐 Live Dashboard:** https://n8n.cognova.net/consultant/
 
 ## Current Status (September 2025)
 
-✅ **DEPLOYED & OPERATIONAL**
+⚠️ **SYSTEM AT 10% CAPACITY** - Focus shifted to core scanning functionality
 - Running on production server (91.98.72.10)
-- Full authentication system working
-- Dark theme dashboard with glass morphism design
-- Automated job scanning and AI matching
-- PostgreSQL + pgvector for semantic search
+- Basic authentication system operational
+- Core scanning infrastructure for Swedish consultant portals
+- PostgreSQL + pgvector foundation ready
 - Docker containerized deployment
 
 ### Login Credentials
@@ -21,15 +20,15 @@
 
 ## System Overview
 
-This enterprise-grade system targets **senior consultants and executives** with 15+ years experience:
+**Scanning-first web dashboard** that continuously monitors Swedish consultant assignment portals, surfaces results within the application, and layers on matching, analytics, recommendations, and company intelligence.
 
-**Target Profiles:**
-- **C-Level:** Interim CTO/CIO, Chief Digital Officers, Transformation Directors
-- **Enterprise Architects:** Business/Solution/Data Architects with strategic roles
-- **Program Leaders:** Digital transformation, change management, M&A integration
-- **Technical Executives:** Head of Development, R&D Directors, Engineering VPs
+**Core Principle:** Scanning must operate even if no consultant CVs exist; configuration lives in the UI so operators can tune criteria before any matching data is present.
 
-**Rate Range:** 1,200-1,800 SEK/hour for executive assignments
+### System Phases
+
+- **Phase 1 – Core Scanning:** Verama → Cinode → Keyman with shared configuration UI, scheduler control, and in-app monitoring
+- **Phase 2 – Matching & Consultant Management:** Activate consultant profiles, CV ingestion, embeddings, and matching workflows
+- **Phase 3 – Intelligence & Operations:** Expand analytics dashboards, company intelligence tracking, alert/recommendation centers
 
 ## Architecture
 
@@ -42,69 +41,74 @@ This enterprise-grade system targets **senior consultants and executives** with 
 - **Web Server:** Nginx proxy with SSL
 - **Scheduler:** APScheduler for automated scanning (07:00 daily)
 
-### Key Features
+### Current Scanning Priorities
 
-**🔍 Multi-Source Job Ingestion:**
-- Brainville (Management consulting assignments)
-- Cinode (Premium authenticated access)
-- eWork/Verama (Senior consultant track)
-- Manual job upload with AI parsing
+1. **Verama (eWork)** – Investigate and prefer official/API access; use Playwright automation only when no stable endpoint exists
+2. **Cinode** – Support authenticated scraping/API access under shared configuration contract
+3. **Keyman** – Add coverage once shared configuration plumbing is in place
+4. **Additional sources** – Brainville, Emagine, Onsiter, A Society, Nikita, TietoEVRY, Visma Opic, Kommers, LinkedIn, Uptrail, Freelance Finance
 
-**🤖 AI-Powered Matching:**
-- OpenAI embeddings optimized for strategic language
-- Executive-weighted scoring algorithm
-- Semantic similarity for leadership skills
-- Seniority and industry filtering
+**Configuration:** All scanners read shared criteria from `scanning_configs` + `source_config_overrides` for centralized operator control.
 
-**📊 Executive Dashboard:**
-- Real-time assignment statistics
-- Company prospect tracking
-- Consultant profile management
-- Match scoring and recommendations
-- Automated report generation
+### Core Components
 
-## Web Dashboard Features
+**🔍 Scanning Infrastructure:**
+- Base HTTP and Playwright abstractions
+- Shared configuration system
+- Rate limiting and authentication management
+- Automated scheduling with UI controls
 
-### Main Sections
-- **📈 Dashboard:** Executive metrics, recent matches, market trends
-- **💼 Jobs:** Browse senior assignments, filter by industry/location
-- **👥 Consultants:** Manage executive profiles, skills, certifications
-- **🎯 Matches:** AI-powered matching with detailed scoring explanations
-- **🔍 Scanner:** Control automated scrapers, view scraping status
-- **📋 Reports:** Daily briefs, weekly market analysis
-- **⚙️ Configuration:** System settings, scraper credentials
+**📊 Data Foundation:**
+- PostgreSQL + pgvector for embeddings
+- Job ingestion and logging
+- Configuration management tables
+- Future matching and analytics support
 
-### Authentication & Security
-- JWT-based authentication with HTTP-only cookies
-- Role-based access (admin/manager/viewer)
-- Session management with auto-logout
-- Secure password hashing (bcrypt)
+## Architecture Components
 
-## API Endpoints
+### Core Services
+- **DatabaseRepository (`app/repo.py`)** – Async access to Postgres + pgvector, managing jobs, consultants, embeddings, matches, ingestion logs, and scanning config tables
+- **EmbeddingService (`app/embeddings.py`)** – Wraps OpenAI or deterministic local embeddings; currently uses simple text preparation
+- **MatchingService (`app/matching.py`)** – Creates embeddings on demand, scores matches (cosine, skills, role, language, geo)
+- **ReportingService (`app/reports.py`)** – Aggregates jobs/matches/skills/source stats; powers dashboard analytics
+- **Scheduler (`app/scheduler.py`)** – APScheduler orchestration for daily/weekly scans, weekly reports, Monday briefs, optimization routines
+- **Scrapers (`app/scrapers/`)** – Base HTTP and Playwright abstractions plus current implementations for Brainville, Cinode, and Verama/eWork
 
-### Core Functionality
+### Web Interface
+- **Auth (`app/auth.py`, `app/auth_routes.py`)** – JWT-based login with admin/manager/viewer roles, password hashing, refresh tokens
+- **Web UI (`app/frontend.py`, `app/templates/`)** – HTMX/Tailwind dashboard at `/consultant/...` with scanning controls, job listings, configuration pages
+- **Scanner Control:** UI control at `/consultant/scanner` for scheduling and monitoring
+- **Configuration Management:** Shared scanning criteria configuration via web interface
+
+## Key Commands
+
+### Server Operations
+```bash
+# Run FastAPI on the server
+ssh <user>@91.98.72.10 "cd /opt/Consultant-Assignment-Scanning-Matching && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+# Execute existing scrapers manually
+curl -X POST http://91.98.72.10:8000/scrape/brainville
+curl -X POST http://91.98.72.10:8000/scrape/ework
+curl -X POST http://91.98.72.10:8000/scrape/cinode
+
+# Regenerate requirements lock if deps change
+pip-compile requirements.in
+```
+
+### API Endpoints
 ```
 GET  /consultant/                    # Main dashboard
 GET  /consultant/jobs               # Job listings
-GET  /consultant/consultants        # Consultant profiles
-GET  /consultant/matches            # Matching results
+GET  /consultant/scanner            # Scanner controls
 POST /auth/login                    # Authentication
 GET  /health                        # System health
-```
 
-### Data Management
-```
-POST /jobs/upsert                   # Add/update jobs
-POST /consultants                   # Add consultants
-POST /match/job/{id}                # Generate matches
-GET  /reports/summary               # Executive reports
-```
-
-### Scraper Control
-```
+# Scraper endpoints
 POST /scrape/brainville            # Manual scraping
-GET  /scheduler/status             # Check automation
-POST /scheduler/start              # Start scheduling
+POST /scrape/ework                 # eWork/Verama scraping
+POST /scrape/cinode                # Cinode scraping
+GET  /scheduler/status             # Check automation status
 ```
 
 ## Technology Stack
@@ -129,18 +133,21 @@ POST /scheduler/start              # Start scheduling
 - SSL/HTTPS with Let's Encrypt
 - Ubuntu 20.04 LTS server
 
-## Data Sources
+## Scanning Configuration & Expectations
 
-### Active Scrapers
-1. **Brainville** - Management consulting assignments
-2. **Cinode** - Premium platform with authentication
-3. **eWork/Verama** - Senior consultant marketplace
+### Configuration Principles
+- New scanners must be configurable via shared tables (`scanning_configs` + `source_config_overrides`)
+- Expose controls in the UI for operator tuning
+- Scanning can run without consultants; matching features should gracefully report "no consultant data"
+- Prefer API integrations when possible; Playwright is a fallback
+- Log screenshots/snapshots for debugging
+- Keep rate limits and authentication details in `.env`
 
-### Planned Integrations
-- LinkedIn premium job scraping
-- Michael Page executive search
-- Heidrick & Struggles C-level positions
-- Enterprise client direct feeds
+### Data Sources Priority
+1. **Verama (eWork)** - Investigate official/API access first; Playwright fallback
+2. **Cinode** - Authenticated scraping/API access under shared configuration contract
+3. **Keyman** - Add coverage once shared configuration plumbing is in place
+4. **Additional sources** - Brainville, Emagine, Onsiter, A Society, Nikita, TietoEVRY, Visma Opic, Kommers, LinkedIn, Uptrail, Freelance Finance
 
 ## Deployment Information
 
@@ -168,52 +175,37 @@ SCHEDULER_ENABLED=true
 SCAN_TIME=07:00
 ```
 
-## Matching Algorithm
+## Implementation Notes & TODO Alignment
 
-### Executive-Weighted Scoring
-1. **Strategic Similarity** (35%) - Leadership language matching
-2. **Seniority Match** (25%) - Years experience + role level
-3. **Role Alignment** (15%) - Title and responsibility match
-4. **Industry Experience** (10%) - Sector-specific knowledge
-5. **Leadership Scope** (10%) - Team size, P&L responsibility
-6. **Location Preference** (5%) - Geographic matching
+### Current Focus Areas
+- Remove reliance on Teams/email notifications from scheduler delivery flows and build equivalent in-app alert panels
+- Flesh out `/consultant/jobs` filters, analytics dashboards, company tracking, and recommendation/alert views per the updated system spec
+- Prioritize implementing Verama → Cinode → Keyman pipelines before expanding to other sources
+- Confirm Verama API usage (`https://app.verama.com/api/public/job-requests`) is stable and capture any auth/header requirements for production
+- Keep downstream modules (matching, analytics, company intelligence, recommendations, alerting) in mind when shaping schemas and APIs
 
-### Filtering Criteria
-- Minimum 15 years experience for executive roles
-- Strategic keywords: transformation, architecture, interim, change
-- Rate expectations: 1,200+ SEK/hour
-- Seniority indicators: Head of, Chief, Director, VP, Architect
-
-## Monitoring & Maintenance
-
-### Automated Operations
-- **Daily Scanning:** 07:00 CET job ingestion
-- **Weekly Reports:** Friday executive market analysis
-- **Monday Briefs:** Weekly opportunity summaries
-- **Health Checks:** System status monitoring
-
-### Manual Operations
-- Consultant profile management via web dashboard
-- Manual job upload and parsing
-- Scraper credential updates
-- Match quality review and tuning
+### Future Development
+- **Matching & Analytics:** Matching logic coordinates weight changes, new fields, or schema migrations with actual database structures
+- **Reporting:** Should evolve to feed in-app dashboards rather than external messaging
+- **Adaptive Configuration:** Future learning features rely on accurate ingestion logs and performance metrics
 
 ## Security & Compliance
 
-- Secure authentication with role-based access
+- Store API keys and login details in `.env`; never commit secrets
+- Respect portal terms of service; include rate limiting and backoff strategies in scrapers
+- JWT-based authentication with role-based access (admin/manager/viewer)
 - HTTPS/SSL encryption for all communications
-- Database credentials encrypted and rotated
-- Session management with secure cookies
 - Input validation and SQL injection protection
 
 ## Support & Issues
 
 For system issues or feature requests:
 1. Check the live dashboard: https://n8n.cognova.net/consultant/
-2. Review logs via docker-compose logs
+2. Review logs via docker-compose logs on server 91.98.72.10
 3. Database queries via PostgreSQL admin tools
 4. System health at /health endpoint
+5. Scanner status and controls at `/consultant/scanner`
 
 ---
 
-**Status:** ✅ Production Ready | **Last Updated:** September 2025 | **Version:** 1.0.0
+**Status:** ⚠️ 10% Capacity - Scanning Foundation | **Last Updated:** September 2025 | **Focus:** Core scanning infrastructure with future matching/analytics layers

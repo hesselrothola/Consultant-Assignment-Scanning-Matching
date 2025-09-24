@@ -1,296 +1,88 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when contributing to this repository.
 
-## Project Purpose
+## Project Purpose & Focus
 
-Enterprise AI Agent for Senior Consultant Assignment Matching in the Swedish market. The system targets **executive-level consultants** (C-level, architects, transformation leaders) and matches them with high-value assignments from enterprise clients and executive search firms.
+Build a scanning-first web dashboard that continuously monitors Swedish consultant assignment portals, surfaces the results inside the application, and layers on matching, analytics, recommendations, and company intelligence. Scanning must operate even if no consultant CVs exist; configuration lives in the UI so operators can tune criteria before any matching data is present.
 
-### Original Requirements (Updated for Senior Focus)
+## System Scope & Phasing
 
-**Target Data Sources:**
-- **Executive Search**: Michael Page, Heidrick & Struggles, Korn Ferry (C-level placements)
-- **Senior Consultant Brokers**: Cinode (premium desk), eWork (senior track), Brainville (management)
-- **Enterprise Direct**: Karolinska, SEB, Swedbank, Volvo (transformation programs)
-- **Public Sector**: Visma Opic, Kommers Annons (architect/leadership roles)
-- **MVP Priority**: Brainville + Cinode (authenticated) + LinkedIn (premium)
+- **Phase 1 – Core Scanning:** Verama → Cinode → Keyman with shared configuration UI, scheduler control, and in-app monitoring.
+- **Phase 2 – Matching & Consultant Management:** Activate consultant profiles, CV ingestion, embeddings, and matching workflows; ensure jobs/matches pages stay in sync.
+- **Phase 3 – Intelligence & Operations:** Expand analytics dashboards, company intelligence tracking, alert/recommendation centres, and adaptive configuration learning.
 
-**Matching Criteria (Executive Focus):**
-- **Role/title**: Enterprise Architect, Business Architect, Interim CTO/CIO, Program Manager
-- **Seniority**: Senior/Executive only (15+ years, C-level, architecture leads)
-- **Strategic skills**: Digital Transformation, Change Management, Enterprise Architecture
-- **Leadership scope**: Team size, P&L responsibility, board reporting
-- **Languages**: Swedish/English/Nordic (Danish, Norwegian common for executives)
-- **Geography**: Hybrid/onsite for C-level, remote possible for architects
-- **Rate expectations**: 1,200-1,800 SEK/hour range
+All phases share the same dashboard foundation; later stages depend on stable scanning but are part of the product vision and should be considered when designing APIs and data models.
 
-**Deliverables:**
-- Daily scanning at 07:00 for C-level opportunities
-- Weekly executive market analysis (Fridays)
-- Monday morning executive opportunity brief
-- Reports include: new senior assignments, executive matching scores, enterprise client prospects
+## Current Scanning Priorities
 
-## Project Overview
+1. **Verama (eWork)** – investigate and prefer official/API access; use Playwright automation only when no stable endpoint exists.
+2. **Cinode** – support authenticated scraping/API access under the same configuration contract.
+3. **Keyman** – add coverage once shared configuration plumbing is in place.
+4. Additional sources (Brainville, Emagine, Onsiter, A Society, Nikita, TietoEVRY, Visma Opic, Kommers, LinkedIn, Uptrail, Freelance Finance) follow after top-three parity.
 
-This Swedish senior consultant matching system ingests executive-level job listings and matches them with high-level consultant profiles using embeddings optimized for strategic language and executive-weighted scoring algorithms.
+All scanners must read shared criteria from `scanning_configs` + `source_config_overrides` so operators can refine searches centrally.
 
-## Architecture
+## Architecture Overview
 
-Enterprise-grade system with authenticated scraping for executive assignments:
+- **DatabaseRepository (`app/repo.py`)** – Async access to Postgres + pgvector, managing jobs, consultants, embeddings, matches, ingestion logs, and scanning config tables.
+- **EmbeddingService (`app/embeddings.py`)** – Wraps OpenAI or deterministic local embeddings; currently uses simple text preparation that can be enhanced later.
+- **MatchingService (`app/matching.py`)** – Creates embeddings on demand, scores matches (cosine, skills, role, language, geo). Adjust weights/logic as future phases call for richer analytics or executive scoring.
+- **ReportingService (`app/reports.py`)** – Aggregates jobs/matches/skills/source stats; extend to power dashboard analytics, company insights, and recommendations.
+- **Scheduler (`app/scheduler.py`)** – APScheduler orchestration for daily/weekly scans, weekly reports, Monday briefs, optimisation routines. UI control at `/consultant/scanner`.
+- **Scrapers (`app/scrapers/`)** – Base HTTP and Playwright abstractions plus current implementations for Brainville, Cinode, and Verama/eWork. New scrapers must honour shared configuration inputs and emit `JobIn` objects.
+- **Auth (`app/auth.py`, `app/auth_routes.py`)** – JWT-based login with admin/manager/viewer roles, password hashing, refresh tokens, and user management pages.
+- **Web UI (`app/frontend.py`, `app/templates/`)** – HTMX/Tailwind dashboard at `/consultant/…`, including login page, jobs list, consultants management, configuration pages, scanner controls, analytics stubs, company views, and placeholders for recommendations/alerts. All user-facing insights stay inside the web app—no Slack/Teams/email integrations.
 
-**Core Services:**
-- **DatabaseRepository** (`app/repo.py`): PostgreSQL + pgvector, optimized for senior consultant profiles
-- **EmbeddingService** (`app/embeddings.py`): OpenAI embeddings tuned for strategic/leadership language
-- **MatchingService** (`app/matching.py`): Executive-weighted scoring: semantic (35%), seniority (25%), role (15%), industry (10%), leadership (10%), location (5%)
-- **ReportingService** (`app/reports.py`): Executive opportunity reports with prospect company tracking
+## Scanning & Configuration Expectations
 
-**Scraping Infrastructure:**
-- **BasePlaywrightScraper** (`app/scrapers/base_playwright.py`): Browser automation base class
-- **PlaywrightMCPClient** (`app/scrapers/playwright_client.py`): SSE-based MCP communication
-- **CinodeScraper** (`app/scrapers/cinode.py`): Authenticated Cinode premium access
-- **BrainvilleScraper** (`app/scrapers/brainville.py`): Management consulting assignments
+- Make new scanners configurable via the shared tables and expose controls in the UI.
+- Ensure scanning can run without consultants; matching features should gracefully report "no consultant data" rather than block scans.
+- Prefer API integrations when possible; Playwright is a fallback and should log screenshots/snapshots for debugging.
+- Keep rate limits and authentication details in `.env` (see `config/scraper_config.yaml` for defaults).
 
-**Web UI** (`app/templates/`, `app/frontend.py`):
-- Full dashboard at `/consultant/` with HTMX + Tailwind CSS
-- Executive job browsing, AI matching, scraper control
+## Matching, Analytics & Operations
 
-**Data Flow:**
-1. Executive jobs ingested via authenticated scrapers → company normalization → job storage
-2. Strategic text prepared → embeddings optimized for leadership language → pgvector storage
-3. Matching prioritizes seniority/leadership → applies executive weights → detailed scoring
+- Matching, analytics, company intelligence, recommendations, and alerting modules are part of the system; design changes should consider their data needs even when implementing scanning tasks.
+- When enriching matching logic, coordinate weight changes, new fields, or schema migrations with actual database structures (no phantom columns).
+- Reporting should evolve to feed in-app dashboards (`/consultant/analytics`, `/consultant/companies`, `/consultant/recommendations`, `/consultant/alerts`) rather than external messaging.
+- Future adaptive configuration and learning features rely on accurate ingestion logs and performance metrics—keep those endpoints tidy.
 
 ## Key Commands
 
-### Testing Scrapers
 ```bash
-# Test connectivity to executive platforms
-python scripts/test_scraper.py --scraper connectivity
+# Run FastAPI on the server (example via SSH)
+ssh <user>@91.98.72.10 "cd /opt/Consultant-Assignment-Scanning-Matching && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
-# Test Brainville management assignments
-python scripts/test_scraper.py --scraper brainville
+# Execute existing scrapers manually
+curl -X POST http://91.98.72.10:8000/scrape/brainville
+curl -X POST http://91.98.72.10:8000/scrape/ework
+curl -X POST http://91.98.72.10:8000/scrape/cinode
 
-# Test Cinode premium with authentication
-python scripts/test_scraper.py --scraper cinode
-
-# Test all scrapers including authenticated
-python scripts/test_scraper.py --scraper all --verbose
+# Regenerate requirements lock if deps change
+pip-compile requirements.in
 ```
 
-### Adding Senior Consultants
-```bash
-# Add Magnus Andersson-type profiles
-docker-compose exec api python scripts/add_senior_consultants.py
+Adjust commands as tooling evolves; keep docs consistent with actual scripts.
 
-# Import from CSV with senior consultants
-docker-compose exec api python scripts/import_consultants.py senior_consultants.csv
-```
 
-### Development Setup
-```bash
-# Copy environment with authentication
-cp .env.example .env
-# Edit .env to set:
-# - OPENAI_API_KEY (better for executive terminology)
-# - CINODE_USERNAME/PASSWORD (premium access)
-# - PLAYWRIGHT_ENABLED=true
+## Deployment & Environment
 
-# Start all services including Playwright MCP
-docker-compose up -d
+- Primary environment runs on managed server **91.98.72.10**; coordinate deployments and troubleshooting against that host.
+- Do not start long-running services on local laptops unless explicitly instructed—align work with the server environment.
+- Use provided Docker/docker-compose tooling when interacting with the server stack.
+- When invoking API endpoints or dashboards, point clients to http://91.98.72.10:<port> rather than localhost on your development machine.
+## Implementation Notes & TODO Alignment
 
-# View logs
-docker-compose logs -f api
-docker-compose logs -f playwright_mcp
+- Remove reliance on Teams/email notifications from scheduler delivery flows and build equivalent in-app alert panels.
+- Flesh out `/consultant/jobs` filters, analytics dashboards, company tracking, and recommendation/alert views per the updated system spec.
+- Prioritise implementing Verama → Cinode → Keyman pipelines before expanding to other sources, but keep downstream modules in mind when shaping schemas and APIs. Confirm Verama API usage (`https://app.verama.com/api/public/job-requests`) is stable and capture any auth/header requirements for production.
+- Finish Cinode integration (authenticated API/Playwright) and implement Keyman scraper with shared configuration + UI controls.
+- When adding new functionality, update both this file and `docs/AI_Agent_for_Consultant_Assignment_Scanning_and_Matching_UPDATED.md` to stay in sync.
 
-# Seed with senior consultant data
-docker-compose exec api python scripts/add_senior_consultants.py
-```
+## Contact & Credentials Hygiene
 
-### Web UI Access
-```bash
-# Full dashboard for executive assignments
-http://localhost:8001/consultant/
+- Store API keys and login details in `.env`; never commit secrets.
+- Respect portal terms of service; include rate limiting and backoff strategies in scrapers.
 
-# Direct pages:
-http://localhost:8001/consultant/jobs         # Senior job listings
-http://localhost:8001/consultant/consultants  # Executive profiles
-http://localhost:8001/consultant/matches      # AI matching
-http://localhost:8001/consultant/scanner      # Scraper control
-```
-
-## Code Architecture Details
-
-### Database Schema (Executive Optimized)
-
-The schema includes senior-specific fields:
-- **consultants**: Added `seniority`, `years_experience`, `certifications`, `rate_expectations`
-- **jobs**: Added `min_years_experience`, `budget_range`, `leadership_scope`
-- **companies**: Tracks enterprise clients vs brokers
-- **job_consultant_matches**: Includes `seniority_score`, `leadership_score`
-
-### Embedding Pipeline (Strategic Language)
-
-The `EmbeddingService` is optimized for executive terminology:
-- Emphasizes strategic keywords: "transformation", "architecture", "leadership"
-- Weights industry experience and certifications higher
-- Includes leadership scope in text preparation
-
-### Executive Matching Algorithm
-
-The `MatchingService` uses executive-specific weights:
-1. **Seniority Filter**: Excludes non-senior automatically
-2. **Strategic Similarity**: 35% weight on leadership language
-3. **Experience Match**: 25% weight on years/level match
-4. **Industry Bonus**: 10% for relevant sector experience
-5. **Leadership Scope**: 10% for team/budget responsibility
-
-### Playwright MCP Integration
-
-For authenticated executive platforms:
-- **playwright_mcp service**: Runs Chrome in Docker with security hardening
-- **BasePlaywrightScraper**: Abstract class for browser automation
-- **CinodeScraper**: Handles login flow and premium job extraction
-- **SSE protocol**: Real-time browser control via MCP
-
-### Senior Consultant Configuration
-
-**Profiles** (`config/consultant_profiles.md`):
-- Swedish executive titles mapping
-- Seniority indicators and filters
-- Rate expectation ranges
-- Red/green flags for assignments
-
-**Keywords** (`config/senior_consultant_keywords.md`):
-- C-level and architecture terms
-- Strategic skill requirements
-- Industry-specific terminology
-- Leadership scope indicators
-
-## Important Implementation Notes
-
-### Executive Assignment Filtering
-Jobs are automatically filtered for seniority:
-1. Minimum 10+ years experience requirement
-2. Senior/Lead/Chief/Head titles prioritized
-3. Junior/Entry positions excluded
-4. Strategic/transformation roles scored higher
-
-### Authentication Management
-Cinode and LinkedIn require authentication:
-- Credentials stored in `.env`
-- Playwright MCP handles session persistence
-- Automatic re-login on session expiry
-- Rate limiting to avoid detection
-
-### Port Configuration
-Default development ports:
-- PostgreSQL: 5433
-- Redis: 6380
-- API: 8001
-- Playwright MCP: 8931
-
-### Environment Variables (Executive Setup)
-Critical settings:
-- `EMBEDDING_BACKEND`: Use "openai" for better executive language
-- `OPENAI_API_KEY`: Required for strategic embeddings
-- `CINODE_USERNAME/PASSWORD`: Premium platform access
-- `PLAYWRIGHT_ENABLED`: Must be true for authenticated scrapers
-
-## Typical Consultant Profile
-
-**Magnus Andersson** - Enterprise Architect / Business Architect
-- 20+ years experience
-- Former CTO, Interim CTO multiple companies
-- Executive MBA
-- Expertise: Digital Strategy, Enterprise Architecture, Change Management
-- Industries: Healthcare (Karolinska), Finance (Postgirot), AgriTech (DeLaval)
-- Languages: Swedish, English, Danish, Norwegian
-- Rate: 1,500-1,800 SEK/hour
-
-## Implementation Status (September 2025)
-
-### ✅ Completed Components
-
-**Core Infrastructure:**
-- ✅ FastAPI backend with PostgreSQL + pgvector
-- ✅ EmbeddingService with OpenAI integration  
-- ✅ MatchingService with executive-weighted scoring
-- ✅ DatabaseRepository with full CRUD operations
-- ✅ Docker containerization (API, DB, Redis)
-- ✅ APScheduler for automated scanning (07:00 daily)
-
-**Web Scraping System:**
-- ✅ Base Playwright scraper infrastructure with rate limiting
-- ✅ Playwright MCP integration for browser automation
-- ✅ Brainville scraper fully implemented and tested
-- ✅ Cinode scraper with authentication capability
-- ✅ Scraper API endpoints and testing tools
-
-**User Interface:**
-- ✅ Complete dark theme UI with glass morphism effects
-- ✅ Executive dashboard with real-time stats
-- ✅ User management system (admin/manager/viewer roles)
-- ✅ Job/consultant/match management pages
-- ✅ Professional login page with gradient design
-
-**Deployment:**
-- ✅ Deployed on server 91.98.72.10
-- ✅ Running on internal ports (API:8002, DB:5444, Redis:6390)
-- ✅ Nginx proxy configured via n8n.cognova.net
-- ✅ HTTPS access through existing SSL infrastructure
-
-### ✅ Recently Completed (September 15, 2025)
-
-**CV Upload Feature:**
-- ✅ AI-powered CV parser using OpenAI GPT-4
-- ✅ Drag-and-drop file upload modal (PDF, DOCX, TXT)
-- ✅ Automatic consultant profile extraction
-- ✅ Fixed UI blocking issue (pointer-events on background)
-
-**eWork Scraper:**
-- ✅ Complete implementation for Verama/eWork platform
-- ✅ Country-based filtering (Sweden-only by default)
-- ✅ Senior/Expert level filtering
-- ✅ Successfully scraped 32 Swedish consultant jobs
-
-**Intelligent Scanning:**
-- ✅ Configure scanning based on consultant profiles
-- ✅ AI skill expansion and understanding
-- ✅ Market demand analysis integration
-
-### 🔄 Current Status
-
-**System Access:**
-- **Dashboard:** https://n8n.cognova.net/consultant/
-- **All buttons and features now working correctly**
-- **CV Upload functional with AI parsing**
-
-### 📋 Next Priority
-
-**Enhanced Features:**
-1. LinkedIn premium scraper for executive roles
-2. Slack/Teams notification delivery system
-3. Weekly executive market analysis reports
-4. Company prospect scoring for enterprise clients
-
-**Container Status:**
-- ✅ consultant_api (FastAPI - running)
-- ✅ consultant_postgres (DB - running)  
-- ✅ consultant_redis (Cache - running)
-- ❌ consultant_playwright_mcp (failed, non-critical)
-
-### 🎯 Executive Profile Target
-
-**Typical Senior Consultant:**
-- **Magnus Andersson**: 20+ years, Enterprise/Business Architect
-- Former CTO/Interim CTO, Executive MBA
-- Rate: 1,500-1,800 SEK/hour
-- Industries: Healthcare, Finance, AgriTech, Digital Transformation
-
-### 🚀 Next Features (After Auth Fix)
-
-- LinkedIn premium scraper for executive roles
-- Slack/Teams notification delivery system
-- Weekly executive market analysis reports
-- Company prospect scoring for enterprise clients
-- Public procurement integration (Visma Opic)
-- never ever start anying on my local laptop. teh project is drunning on the server.
+By keeping these guidelines aligned with the full dashboard vision—scanning first, intelligence layered next—we ensure contributions strengthen the entire system lifecycle.
