@@ -216,13 +216,21 @@ async def scanner_control(request: Request):
 
     manual_config = await db_repo.ensure_manual_scanning_config()
     manual_override = manual_config.get('manual_override') or {}
-    # Handle case where manual_override might be a string or dict
-    if isinstance(manual_override, str):
-        override_params = {}
-    elif isinstance(manual_override, dict):
-        override_params = manual_override.get('parameter_overrides') or {}
-    else:
-        override_params = {}
+
+    # Handle parameter_overrides which might be a JSON string or dict
+    override_params = {}
+    if manual_override and isinstance(manual_override, dict):
+        param_overrides = manual_override.get('parameter_overrides')
+        if isinstance(param_overrides, str):
+            import json
+            try:
+                override_params = json.loads(param_overrides)
+            except (json.JSONDecodeError, TypeError):
+                override_params = {}
+        elif isinstance(param_overrides, dict):
+            override_params = param_overrides
+        else:
+            override_params = {}
 
     target_roles = manual_config.get('target_roles') or DEFAULT_EXECUTIVE_ROLES
     target_skills = manual_config.get('target_skills') or DEFAULT_EXECUTIVE_SKILLS
