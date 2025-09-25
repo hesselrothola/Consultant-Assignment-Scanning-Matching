@@ -43,7 +43,7 @@
 
 ### Current Scanning Priorities
 
-1. **Verama (eWork)** – Investigate and prefer official/API access; use Playwright automation only when no stable endpoint exists
+1. **Verama** – Investigate and prefer official/API access; use Playwright automation only when no stable endpoint exists
 2. **Cinode** – Support authenticated scraping/API access under shared configuration contract
 3. **Keyman** – Add coverage once shared configuration plumbing is in place
 4. **Additional sources** – Brainville, Emagine, Onsiter, A Society, Nikita, TietoEVRY, Visma Opic, Kommers, LinkedIn, Uptrail, Freelance Finance
@@ -89,7 +89,7 @@ ssh <user>@91.98.72.10 "cd /opt/Consultant-Assignment-Scanning-Matching && uvico
 
 # Execute existing scrapers manually
 curl -X POST http://91.98.72.10:8000/scrape/brainville
-curl -X POST http://91.98.72.10:8000/scrape/ework
+curl -X POST http://91.98.72.10:8000/scrape/verama
 curl -X POST http://91.98.72.10:8000/scrape/cinode
 
 # Regenerate requirements lock if deps change
@@ -106,7 +106,7 @@ GET  /health                        # System health
 
 # Scraper endpoints
 POST /scrape/brainville            # Manual scraping
-POST /scrape/ework                 # eWork/Verama scraping
+POST /scrape/verama                 # Verama scraping
 POST /scrape/cinode                # Cinode scraping
 GET  /scheduler/status             # Check automation status
 ```
@@ -144,7 +144,7 @@ GET  /scheduler/status             # Check automation status
 - Keep rate limits and authentication details in `.env`
 
 ### Data Sources Priority
-1. **Verama (eWork)** - Investigate official/API access first; Playwright fallback
+1. **Verama** - Investigate official/API access first; Playwright fallback
 2. **Cinode** - Authenticated scraping/API access under shared configuration contract
 3. **Keyman** - Add coverage once shared configuration plumbing is in place
 4. **Additional sources** - Brainville, Emagine, Onsiter, A Society, Nikita, TietoEVRY, Visma Opic, Kommers, LinkedIn, Uptrail, Freelance Finance

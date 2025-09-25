@@ -24,7 +24,7 @@ from app.reports import ReportingService
 from app.scheduler import ScannerScheduler
 from app.parse.html_parser import GenericHTMLParser
 from app.ingest.rss_ingester import RSSIngester
-from app.scrapers import BrainvilleScraper, CinodeScraper, EworkScraper
+from app.scrapers import BrainvilleScraper, CinodeScraper, VeramaScraper
 from app.config import settings, SCRAPER_CONFIGS
 from app.auth_routes import router as auth_router
 from app.auth import get_current_user, require_user, User
@@ -638,20 +638,20 @@ async def scrape_brainville(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/scrape/ework")
-async def scrape_ework(
+@app.post("/scrape/verama")
+async def scrape_verama(
     background_tasks: BackgroundTasks,
     db: DatabaseRepository = Depends(get_db),
     embeddings: EmbeddingService = Depends(get_embedding_service),
     max_pages: Optional[int] = None,
     countries: Optional[List[str]] = None
 ):
-    """Manually trigger eWork scraping."""
+    """Manually trigger Verama scraping."""
     try:
         # Use configured countries or default to Sweden
         target_countries = countries or ['SE']
         
-        async with EworkScraper(countries=target_countries) as scraper:
+        async with VeramaScraper(countries=target_countries) as scraper:
             if max_pages:
                 scraper.max_pages = max_pages
             
@@ -691,7 +691,7 @@ async def scrape_ework(
             
             # Log ingestion
             await db.log_ingestion(
-                source="ework",
+                source="verama",
                 status="success",
                 found_count=len(jobs),
                 upserted_count=len(saved_jobs)
@@ -710,7 +710,7 @@ async def scrape_ework(
         
         # Log failed ingestion
         await db.log_ingestion(
-            source="ework",
+            source="verama",
             status="failed",
             error=str(e)
         )

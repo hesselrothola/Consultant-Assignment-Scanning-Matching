@@ -1087,11 +1087,11 @@ class DatabaseRepository:
                 is_active=True
             )
 
-        override = await self.get_source_override(config['config_id'], 'ework')
+        override = await self.get_source_override(config['config_id'], 'verama')
         if not override:
             override = await self.upsert_source_override(
                 config_id=config['config_id'],
-                source_name='ework',
+                source_name='verama',
                 parameter_overrides={
                     'countries': DEFAULT_VERAMA_COUNTRIES,
                     'languages': DEFAULT_EXECUTIVE_LANGUAGES,
@@ -1165,7 +1165,7 @@ class DatabaseRepository:
         if source_overrides is not None:
             await self.upsert_source_override(
                 config_id=config_id,
-                source_name='ework',
+                source_name='verama',
                 parameter_overrides=source_overrides,
                 is_enabled=True
             )

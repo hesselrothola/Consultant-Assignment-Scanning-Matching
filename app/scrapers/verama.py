@@ -16,9 +16,9 @@ from app.scrapers.base import BaseScraper
 logger = logging.getLogger(__name__)
 
 
-class EworkScraper(BaseScraper):
+class VeramaScraper(BaseScraper):
     """
-    Scraper for eWork/Verama consulting assignments.
+    Scraper for Verama consulting assignments.
     Focuses on Swedish and Nordic senior consultant positions.
     """
     
@@ -33,7 +33,7 @@ class EworkScraper(BaseScraper):
         target_locations: Optional[List[str]] = None
     ):
         """
-        Initialize eWork scraper with configurable filters.
+        Initialize Verama scraper with configurable filters.
         
         Args:
             countries: List of country codes to filter by (e.g., ['SE', 'NO', 'DK', 'FI'])
@@ -42,7 +42,7 @@ class EworkScraper(BaseScraper):
                       Default is Swedish and English
         """
         super().__init__(
-            source_name="ework",
+            source_name="verama",
             base_url="https://app.verama.com"
         )
         self.api_base = f"{self.base_url}/api/public"
@@ -82,7 +82,7 @@ class EworkScraper(BaseScraper):
         }
     
     async def scrape_listings(self) -> List[Dict[str, Any]]:
-        """Scrape job listings from eWork/Verama."""
+        """Scrape job listings from Verama."""
         all_listings = []
         
         try:

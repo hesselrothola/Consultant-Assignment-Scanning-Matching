@@ -16,7 +16,7 @@ All phases share the same dashboard foundation; later stages depend on stable sc
 
 ## Current Scanning Priorities
 
-1. **Verama (eWork)** – investigate and prefer official/API access; use Playwright automation only when no stable endpoint exists.
+1. **Verama** – investigate and prefer official/API access; use Playwright automation only when no stable endpoint exists.
 2. **Cinode** – support authenticated scraping/API access under the same configuration contract.
 3. **Keyman** – add coverage once shared configuration plumbing is in place.
 4. Additional sources (Brainville, Emagine, Onsiter, A Society, Nikita, TietoEVRY, Visma Opic, Kommers, LinkedIn, Uptrail, Freelance Finance) follow after top-three parity.
@@ -30,7 +30,7 @@ All scanners must read shared criteria from `scanning_configs` + `source_config_
 - **MatchingService (`app/matching.py`)** – Creates embeddings on demand, scores matches (cosine, skills, role, language, geo). Adjust weights/logic as future phases call for richer analytics or executive scoring.
 - **ReportingService (`app/reports.py`)** – Aggregates jobs/matches/skills/source stats; extend to power dashboard analytics, company insights, and recommendations.
 - **Scheduler (`app/scheduler.py`)** – APScheduler orchestration for daily/weekly scans, weekly reports, Monday briefs, optimisation routines. UI control at `/consultant/scanner`.
-- **Scrapers (`app/scrapers/`)** – Base HTTP and Playwright abstractions plus current implementations for Brainville, Cinode, and Verama/eWork. New scrapers must honour shared configuration inputs and emit `JobIn` objects.
+- **Scrapers (`app/scrapers/`)** – Base HTTP and Playwright abstractions plus current implementations for Brainville, Cinode, and Verama. New scrapers must honour shared configuration inputs and emit `JobIn` objects.
 - **Auth (`app/auth.py`, `app/auth_routes.py`)** – JWT-based login with admin/manager/viewer roles, password hashing, refresh tokens, and user management pages.
 - **Web UI (`app/frontend.py`, `app/templates/`)** – HTMX/Tailwind dashboard at `/consultant/…`, including login page, jobs list, consultants management, configuration pages, scanner controls, analytics stubs, company views, and placeholders for recommendations/alerts. All user-facing insights stay inside the web app—no Slack/Teams/email integrations.
 
@@ -56,7 +56,7 @@ ssh <user>@91.98.72.10 "cd /opt/Consultant-Assignment-Scanning-Matching && uvico
 
 # Execute existing scrapers manually
 curl -X POST http://91.98.72.10:8000/scrape/brainville
-curl -X POST http://91.98.72.10:8000/scrape/ework
+curl -X POST http://91.98.72.10:8000/scrape/verama
 curl -X POST http://91.98.72.10:8000/scrape/cinode
 
 # Regenerate requirements lock if deps change

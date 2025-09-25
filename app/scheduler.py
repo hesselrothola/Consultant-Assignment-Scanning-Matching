@@ -13,7 +13,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from app.scrapers import EworkScraper
+from app.scrapers import VeramaScraper
 from app.repo import DatabaseRepository
 from app.embeddings import EmbeddingService
 from app.matching import MatchingService
@@ -53,7 +53,7 @@ class ScannerScheduler:
         
         # Configuration
         self.enabled_sources = {
-            'ework': EworkScraper,
+            'verama': VeramaScraper,
             # Add other scrapers as they're implemented:
             # 'brainville': BrainvilleScraper,
             # 'cinode': CinodeScraper,
