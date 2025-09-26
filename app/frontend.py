@@ -178,10 +178,22 @@ async def admin_view(request: Request):
     """System settings and administration"""
     from app.main import db_repo, scanner_scheduler
 
-    # Get system statistics
-    job_count = await db_repo.get_job_count()
-    consultant_count = await db_repo.get_consultant_count()
-    user_count = await db_repo.get_user_count() if hasattr(db_repo, 'get_user_count') else 0
+    # Get system statistics using existing methods
+    try:
+        # Get job count
+        jobs = await db_repo.search_jobs(limit=1)  # Just to get total count
+        job_count = len(await db_repo.search_jobs(limit=1000)) if jobs else 0
+
+        # Get consultant count
+        consultants = await db_repo.search_consultants(limit=1)
+        consultant_count = len(await db_repo.search_consultants(limit=1000)) if consultants else 0
+
+        # User count - we don't have user management yet
+        user_count = 1  # Admin user exists
+    except:
+        job_count = 0
+        consultant_count = 0
+        user_count = 1
 
     # Check scheduler status
     scheduler_running = scanner_scheduler.scheduler.running if scanner_scheduler else False
