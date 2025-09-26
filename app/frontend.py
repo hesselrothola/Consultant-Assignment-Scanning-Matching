@@ -173,8 +173,8 @@ async def consultant_add(
     </div>
     """
 
-@router.get("/config", response_class=HTMLResponse)
-async def config_view(request: Request):
+@router.get("/admin", response_class=HTMLResponse)
+async def admin_view(request: Request):
     """System settings and administration"""
     from app.main import db_repo, scanner_scheduler
 
@@ -186,7 +186,7 @@ async def config_view(request: Request):
     # Check scheduler status
     scheduler_running = scanner_scheduler.scheduler.running if scanner_scheduler else False
 
-    return templates.TemplateResponse("config.html", {
+    return templates.TemplateResponse("admin.html", {
         "request": request,
         "job_count": job_count,
         "consultant_count": consultant_count,
@@ -195,21 +195,7 @@ async def config_view(request: Request):
         "uptime": "N/A"  # Can be calculated from app start time if tracked
     })
 
-@router.get("/config/{config_id}", response_class=HTMLResponse)
-async def config_details(request: Request, config_id: UUID):
-    """View specific configuration details"""
-    from app.main import db_repo
-    
-    config = await db_repo.get_scanning_config(config_id)
-    overrides = await db_repo.get_source_config_overrides(config_id)
-    performance = await db_repo.get_config_performance_history(config_id, days=7)
-    
-    return templates.TemplateResponse("config_details.html", {
-        "request": request,
-        "config": config,
-        "overrides": overrides,
-        "performance": performance
-    })
+# Removed old config details route - scanning configs are now managed in scanner page
 
 @router.get("/scanner", response_class=HTMLResponse)
 async def scanner_control(request: Request):
