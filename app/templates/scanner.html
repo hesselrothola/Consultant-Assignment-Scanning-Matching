@@ -80,6 +80,16 @@
                     Saved manual criteria target C-level, enterprise architecture, and transformation leadership roles. Update these filters to refine what the Verama scan collects while consultant profiles are still being onboarded.
                 </p>
 
+                {% if consultant_summary and consultant_summary.consultant_count %}
+                <div class="mt-3 p-3 rounded-md bg-green-900/20 text-green-200 text-sm">
+                    Consultant-driven scanning available ({{ consultant_summary.consultant_count }} active profiles). Scheduled runs blend consultant data with these manual overrides. Manual scans below continue to use the override values explicitly.
+                </div>
+                {% else %}
+                <div class="mt-3 p-3 rounded-md bg-secondary-dark text-secondary-text-dark text-sm">
+                    No consultant profiles detected yet. All scans rely solely on the manual executive criteria below.
+                </div>
+                {% endif %}
+
                 <form class="mt-5 space-y-4" hx-post="/consultant/scanner/manual-config" hx-target="#manual-config-feedback" hx-swap="innerHTML">
                     <input type="hidden" name="config_id" value="{{ manual_form.config_id }}">
 

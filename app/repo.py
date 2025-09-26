@@ -4,6 +4,7 @@ from uuid import UUID
 from datetime import datetime, date
 import json
 from decimal import Decimal
+from copy import deepcopy
 
 from app.models import (
     Job, JobIn, Consultant, ConsultantIn,
@@ -66,6 +67,38 @@ DEFAULT_EXECUTIVE_SENIORITY = ["Senior", "Executive", "C-level"]
 DEFAULT_EXECUTIVE_ONSITE = ["onsite", "hybrid", "remote"]
 DEFAULT_VERAMA_LEVELS = ["SENIOR", "EXPERT"]
 DEFAULT_VERAMA_COUNTRIES = ["SE"]
+
+DEFAULT_SOURCE_OVERRIDES = {
+    'verama': {
+        'parameter_overrides': {
+            'countries': DEFAULT_VERAMA_COUNTRIES,
+            'languages': DEFAULT_EXECUTIVE_LANGUAGES,
+            'levels': DEFAULT_VERAMA_LEVELS,
+            'target_roles': DEFAULT_EXECUTIVE_ROLES,
+            'target_keywords': DEFAULT_EXECUTIVE_ROLES,
+            'onsite_modes': DEFAULT_EXECUTIVE_ONSITE,
+        },
+        'is_enabled': True,
+    },
+    'cinode': {
+        'parameter_overrides': {
+            'target_roles': DEFAULT_EXECUTIVE_ROLES,
+            'target_keywords': DEFAULT_EXECUTIVE_ROLES,
+            'target_locations': DEFAULT_EXECUTIVE_LOCATIONS,
+            'languages': DEFAULT_EXECUTIVE_LANGUAGES,
+        },
+        'is_enabled': False,
+    },
+    'keyman': {
+        'parameter_overrides': {
+            'target_roles': DEFAULT_EXECUTIVE_ROLES,
+            'target_keywords': DEFAULT_EXECUTIVE_ROLES,
+            'target_locations': DEFAULT_EXECUTIVE_LOCATIONS,
+            'languages': DEFAULT_EXECUTIVE_LANGUAGES,
+        },
+        'is_enabled': False,
+    },
+}
 
 
 class DatabaseRepository:
@@ -361,6 +394,81 @@ class DatabaseRepository:
             
             rows = await conn.fetch(query, *params)
             return [self._row_to_consultant(row) for row in rows]
+
+    async def summarize_active_consultants(self) -> Dict[str, List[str]]:
+        """Aggregate roles, skills, locations, languages, and onsite preferences for active consultants."""
+        query = """
+            SELECT
+                role,
+                seniority,
+                skills,
+                languages,
+                location_city,
+                location_country,
+                onsite_mode
+            FROM consultants
+            WHERE active = TRUE
+        """
+
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query)
+
+        def _collect_list(values: List[str], *, to_lower=False, to_upper=False) -> List[str]:
+            items = []
+            for value in values:
+                if not value:
+                    continue
+                if to_lower:
+                    value = value.lower()
+                elif to_upper:
+                    value = value.upper()
+                items.append(value)
+
+            # Deduplicate while preserving order
+            seen = set()
+            unique = []
+            for item in items:
+                if item in seen:
+                    continue
+                seen.add(item)
+                unique.append(item)
+            return unique
+
+        roles = []
+        skills = []
+        languages = []
+        cities = []
+        onsite_modes = []
+        seniority = []
+
+        for row in rows:
+            if row['role']:
+                roles.append(row['role'])
+            if row['seniority']:
+                seniority.append(row['seniority'])
+            if row['skills']:
+                skills.extend(row['skills'])
+            if row['languages']:
+                languages.extend(row['languages'])
+            if row['location_city']:
+                cities.append(row['location_city'])
+            if row['location_country']:
+                cities.append(row['location_country'])
+            if row['onsite_mode']:
+                onsite_modes.append(row['onsite_mode'])
+
+        summary = {
+            'roles': _collect_list(roles),
+            'skills': _collect_list(skills),
+            'languages': _collect_list(languages, to_upper=True),
+            'locations': _collect_list(cities, to_lower=True),
+            'onsite_modes': _collect_list([mode.lower() for mode in onsite_modes if mode], to_lower=True),
+            'seniority': _collect_list(seniority),
+        }
+
+        summary['has_consultants'] = bool(rows)
+        summary['consultant_count'] = len(rows)
+        return summary
     
     # Embedding operations
     async def store_job_embedding(
@@ -1087,23 +1195,21 @@ class DatabaseRepository:
                 is_active=True
             )
 
-        override = await self.get_source_override(config['config_id'], 'verama')
-        if not override:
-            override = await self.upsert_source_override(
-                config_id=config['config_id'],
-                source_name='verama',
-                parameter_overrides={
-                    'countries': DEFAULT_VERAMA_COUNTRIES,
-                    'languages': DEFAULT_EXECUTIVE_LANGUAGES,
-                    'levels': DEFAULT_VERAMA_LEVELS,
-                    'target_roles': DEFAULT_EXECUTIVE_ROLES,
-                    'target_keywords': DEFAULT_EXECUTIVE_ROLES,
-                    'onsite_modes': DEFAULT_EXECUTIVE_ONSITE
-                },
-                is_enabled=True
-            )
+        overrides = {}
+        for source_name, override_defaults in DEFAULT_SOURCE_OVERRIDES.items():
+            defaults = deepcopy(override_defaults['parameter_overrides'])
+            existing = await self.get_source_override(config['config_id'], source_name)
+            if existing:
+                overrides[source_name] = existing
+            else:
+                overrides[source_name] = await self.upsert_source_override(
+                    config_id=config['config_id'],
+                    source_name=source_name,
+                    parameter_overrides=defaults,
+                    is_enabled=override_defaults.get('is_enabled', False)
+                )
 
-        config['manual_override'] = override
+        config['manual_overrides'] = overrides
         return config
 
     async def update_manual_scanning_config(self,
@@ -1162,17 +1268,32 @@ class DatabaseRepository:
                 onsite_modes
             )
 
+        overrides = {}
         if source_overrides is not None:
-            await self.upsert_source_override(
+            overrides['verama'] = await self.upsert_source_override(
                 config_id=config_id,
                 source_name='verama',
                 parameter_overrides=source_overrides,
                 is_enabled=True
             )
 
+        for source_name, override_defaults in DEFAULT_SOURCE_OVERRIDES.items():
+            if source_name in overrides:
+                continue
+            defaults = deepcopy(override_defaults['parameter_overrides'])
+            existing = await self.get_source_override(config_id, source_name)
+            if existing:
+                overrides[source_name] = existing
+            else:
+                overrides[source_name] = await self.upsert_source_override(
+                    config_id=config_id,
+                    source_name=source_name,
+                    parameter_overrides=defaults,
+                    is_enabled=override_defaults.get('is_enabled', False)
+                )
+
         updated_config = dict(row)
-        override = await self.get_source_override(config_id, 'ework')
-        updated_config['manual_override'] = override
+        updated_config['manual_overrides'] = overrides
         return updated_config
 
     async def log_config_performance(self, performance_data: Dict[str, Any]):

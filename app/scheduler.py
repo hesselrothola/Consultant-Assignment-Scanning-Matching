@@ -14,7 +14,15 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from app.scrapers import VeramaScraper
-from app.repo import DatabaseRepository
+from app.repo import (
+    DatabaseRepository,
+    DEFAULT_EXECUTIVE_LANGUAGES,
+    DEFAULT_EXECUTIVE_LOCATIONS,
+    DEFAULT_EXECUTIVE_ONSITE,
+    DEFAULT_EXECUTIVE_ROLES,
+    DEFAULT_EXECUTIVE_SENIORITY,
+    DEFAULT_EXECUTIVE_SKILLS,
+)
 from app.embeddings import EmbeddingService
 from app.matching import MatchingService
 from app.reports import ReportingService
@@ -54,10 +62,9 @@ class ScannerScheduler:
         # Configuration
         self.enabled_sources = {
             'verama': VeramaScraper,
-            # Add other scrapers as they're implemented:
-            # 'brainville': BrainvilleScraper,
+            # Future sources
             # 'cinode': CinodeScraper,
-            # 'linkedin': LinkedInScraper,
+            # 'keyman': KeymanScraper,
         }
     
     async def start(self):
@@ -145,25 +152,29 @@ class ScannerScheduler:
             
             total_jobs_found = 0
             total_matches_generated = 0
-            
+
+            consultant_summary = await self.db_repo.summarize_active_consultants()
+            has_consultants = consultant_summary.get('has_consultants')
+
             # Run scanning with each active configuration
             for config in active_configs:
                 logger.info(f"Running scan with configuration: {config['config_name']}")
-                
+
+                if has_consultants:
+                    config = self._merge_consultant_summary_into_config(config, consultant_summary)
+
                 try:
-                    # Apply configuration parameters to scrapers
                     jobs_found, matches_generated = await self._scan_with_config(config)
                     total_jobs_found += jobs_found
                     total_matches_generated += matches_generated
-                    
-                    # Log performance for this configuration
+
                     await self._log_config_performance(
                         config['config_id'],
                         jobs_found,
                         matches_generated,
                         scan_start.date()
                     )
-                    
+
                 except Exception as e:
                     logger.error(f"Error scanning with config {config['config_name']}: {e}")
                     continue
@@ -228,7 +239,32 @@ class ScannerScheduler:
                 continue
         
         return jobs_found, matches_generated
-    
+
+    def _merge_consultant_summary_into_config(self, config: Dict[str, Any], summary: Dict[str, Any]) -> Dict[str, Any]:
+        merged = dict(config)
+
+        def combine(primary, secondary, fallback):
+            result = []
+            seen = set()
+            for seq in (primary or [], secondary or [], fallback or []):
+                for item in seq:
+                    if not item:
+                        continue
+                    norm = item.lower() if isinstance(item, str) else item
+                    if norm in seen:
+                        continue
+                    seen.add(norm)
+                    result.append(item)
+            return result
+
+        merged['target_roles'] = combine(summary.get('roles'), config.get('target_roles'), DEFAULT_EXECUTIVE_ROLES)
+        merged['target_skills'] = combine(summary.get('skills'), config.get('target_skills'), DEFAULT_EXECUTIVE_SKILLS)
+        merged['languages'] = combine(summary.get('languages'), config.get('languages'), DEFAULT_EXECUTIVE_LANGUAGES)
+        merged['onsite_modes'] = combine(summary.get('onsite_modes'), config.get('onsite_modes'), DEFAULT_EXECUTIVE_ONSITE)
+        merged['target_locations'] = combine(summary.get('locations'), config.get('target_locations'), DEFAULT_EXECUTIVE_LOCATIONS)
+        merged['seniority_levels'] = combine(summary.get('seniority'), config.get('seniority_levels'), DEFAULT_EXECUTIVE_SENIORITY)
+        return merged
+
     def _build_scraper_params(self, config, source_override=None) -> Dict[str, Any]:
         """Build scraper parameters from configuration and overrides."""
         params = {
@@ -240,9 +276,9 @@ class ScannerScheduler:
             'onsite_modes': config.get('onsite_modes') or [],
             'contract_durations': config.get('contract_durations') or [],
         }
-        
+
         # Apply source-specific overrides
-        if source_override and source_override['parameter_overrides']:
+        if source_override and source_override.get('parameter_overrides'):
             params.update(source_override['parameter_overrides'])
 
         # Normalise override keys expected by scrapers

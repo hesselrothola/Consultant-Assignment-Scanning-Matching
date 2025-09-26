@@ -175,14 +175,24 @@ async def consultant_add(
 
 @router.get("/config", response_class=HTMLResponse)
 async def config_view(request: Request):
-    """View and manage scanning configurations"""
-    from app.main import db_repo
-    
-    configs = await db_repo.get_all_scanning_configs()
-    
+    """System settings and administration"""
+    from app.main import db_repo, scanner_scheduler
+
+    # Get system statistics
+    job_count = await db_repo.get_job_count()
+    consultant_count = await db_repo.get_consultant_count()
+    user_count = await db_repo.get_user_count() if hasattr(db_repo, 'get_user_count') else 0
+
+    # Check scheduler status
+    scheduler_running = scanner_scheduler.scheduler.running if scanner_scheduler else False
+
     return templates.TemplateResponse("config.html", {
         "request": request,
-        "configs": configs
+        "job_count": job_count,
+        "consultant_count": consultant_count,
+        "user_count": user_count,
+        "scheduler_running": scheduler_running,
+        "uptime": "N/A"  # Can be calculated from app start time if tracked
     })
 
 @router.get("/config/{config_id}", response_class=HTMLResponse)
@@ -215,22 +225,19 @@ async def scanner_control(request: Request):
     recent_logs = await db_repo.get_recent_ingestion_logs(limit=10)
 
     manual_config = await db_repo.ensure_manual_scanning_config()
-    manual_override = manual_config.get('manual_override') or {}
+    manual_overrides = manual_config.get('manual_overrides') or {}
+    verama_override = manual_overrides.get('verama') or manual_overrides.get('ework') or {}
 
-    # Handle parameter_overrides which might be a JSON string or dict
     override_params = {}
-    if manual_override and isinstance(manual_override, dict):
-        param_overrides = manual_override.get('parameter_overrides')
-        if isinstance(param_overrides, str):
-            import json
-            try:
-                override_params = json.loads(param_overrides)
-            except (json.JSONDecodeError, TypeError):
-                override_params = {}
-        elif isinstance(param_overrides, dict):
-            override_params = param_overrides
-        else:
+    param_overrides = verama_override.get('parameter_overrides') if isinstance(verama_override, dict) else None
+    if isinstance(param_overrides, str):
+        import json
+        try:
+            override_params = json.loads(param_overrides)
+        except (json.JSONDecodeError, TypeError):
             override_params = {}
+    elif isinstance(param_overrides, dict):
+        override_params = param_overrides
 
     target_roles = manual_config.get('target_roles') or DEFAULT_EXECUTIVE_ROLES
     target_skills = manual_config.get('target_skills') or DEFAULT_EXECUTIVE_SKILLS
@@ -241,6 +248,8 @@ async def scanner_control(request: Request):
     countries = override_params.get('countries') or DEFAULT_VERAMA_COUNTRIES
     levels = override_params.get('levels') or DEFAULT_VERAMA_LEVELS
     target_keywords = override_params.get('target_keywords') or target_roles
+
+    consultant_summary = await db_repo.summarize_active_consultants()
 
     manual_form = {
         "config_id": str(manual_config['config_id']),
@@ -263,7 +272,10 @@ async def scanner_control(request: Request):
         "recent_logs": recent_logs,
         "manual_form": manual_form,
         "manual_config": manual_config,
-        "manual_override": override_params
+        "manual_overrides": manual_overrides,
+        "verama_override": verama_override,
+        "override_params": override_params,
+        "consultant_summary": consultant_summary
     })
 
 

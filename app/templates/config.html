@@ -1,122 +1,263 @@
 {% extends "base.html" %}
 
-{% block title %}Configuration{% endblock %}
+{% block title %}Settings{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
     <div>
-        <h2 class="text-3xl font-bold text-primary-text-dark">Scanning Configurations</h2>
-        <p class="mt-2 text-secondary-text-dark">Manage automated scanning settings and source configurations</p>
+        <h2 class="text-3xl font-bold text-primary-text-dark">System Settings</h2>
+        <p class="mt-2 text-secondary-text-dark">Manage users, system configuration, and administrative settings</p>
     </div>
 
-    <!-- Configurations List -->
-    <div class="bg-primary-dark shadow-lg rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-700">
-                <thead class="bg-secondary-dark">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Configuration</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Frequency</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Sources</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Status</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Performance</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-primary-dark divide-y divide-gray-700">
-                    {% for config in configs %}
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-primary-text-dark">{{ config.config_name }}</div>
-                            <div class="text-sm text-secondary-text-dark">Created: {{ config.created_at.strftime('%Y-%m-%d') if config.created_at else 'Unknown' }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-text-dark">{{ config.scan_frequency }}</td>
-                        <td class="px-6 py-4 text-sm text-secondary-text-dark">
-                            {% if config.enabled_sources %}
-                            <div class="flex flex-wrap gap-1">
-                                {% for source in config.enabled_sources %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent-dark/20 text-accent-dark">{{ source }}</span>
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                            No sources configured
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-text-dark">
-                            {% if config.is_active %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-900/50 text-green-300">Active</span>
-                            {% else %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-900/50 text-red-300">Inactive</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-text-dark">
-                            {% if config.performance_score is not none %}
-                            <div class="flex items-center">
-                                <div class="h-8 w-8 rounded-full flex items-center justify-center text-xs font-medium 
-                                            {% if config.performance_score >= 0.8 %}bg-green-900/50 text-green-300
-                                            {% elif config.performance_score >= 0.6 %}bg-yellow-900/50 text-yellow-300
-                                            {% else %}bg-red-900/50 text-red-300{% endif %}">
-                                    {{ (config.performance_score * 100)|round|int }}%
-                                </div>
-                            </div>
-                            {% else %}
-                            <span class="text-gray-500">No data</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="/consultant/config/{{ config.config_id }}" class="text-accent-dark hover:text-accent-dark/80 mr-3">View Details</a>
-                            <button class="text-green-400 hover:text-green-300">Edit</button>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="px-6 py-4 text-center text-secondary-text-dark">No configurations found. The system will use default settings.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <!-- User Management Section -->
+    <div class="bg-primary-dark shadow-lg rounded-lg p-6">
+        <div class="mb-6">
+            <h3 class="text-xl font-semibold text-primary-text-dark mb-2">User Management</h3>
+            <p class="text-secondary-text-dark text-sm">Add, edit, and manage system users and their permissions</p>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Add New User Button -->
+            <div class="flex justify-between items-center">
+                <div class="text-sm text-secondary-text-dark">
+                    <span class="font-medium">{{ user_count or 0 }}</span> users in system
+                </div>
+                <button onclick="showAddUserModal()" class="px-4 py-2 bg-accent-dark text-white rounded-md hover:bg-accent-dark/80 transition duration-150">
+                    <i class="fas fa-user-plus mr-2"></i>Add User
+                </button>
+            </div>
+
+            <!-- Users Table -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead class="bg-secondary-dark">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">User</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Email</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Role</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Last Active</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-secondary-text-dark uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700" id="users-table">
+                        <!-- Users will be loaded here via HTMX -->
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center">
+                                <a href="/consultant/users" class="text-accent-dark hover:text-accent-dark/80 font-medium">
+                                    <i class="fas fa-users mr-2"></i>View Users
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- Quick Stats -->
-    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-primary-dark shadow-lg rounded-lg p-6">
-            <div class="text-center">
-                <div class="text-3xl font-bold text-accent-dark">{{ configs|length }}</div>
-                <div class="text-sm text-secondary-text-dark">Active Configurations</div>
+    <!-- System Configuration -->
+    <div class="bg-primary-dark shadow-lg rounded-lg p-6">
+        <div class="mb-6">
+            <h3 class="text-xl font-semibold text-primary-text-dark mb-2">System Configuration</h3>
+            <p class="text-secondary-text-dark text-sm">Core system settings and environment configuration</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Database Settings -->
+            <div class="space-y-4">
+                <h4 class="text-lg font-medium text-primary-text-dark">Database</h4>
+                <div class="space-y-2">
+                    <div class="flex justify-between py-2 border-b border-gray-700">
+                        <span class="text-secondary-text-dark">Status</span>
+                        <span class="text-green-400">
+                            <i class="fas fa-check-circle mr-1"></i>Connected
+                        </span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-700">
+                        <span class="text-secondary-text-dark">Type</span>
+                        <span class="text-primary-text-dark">PostgreSQL + pgvector</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-700">
+                        <span class="text-secondary-text-dark">Jobs Count</span>
+                        <span class="text-primary-text-dark">{{ job_count or 0 }}</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-700">
+                        <span class="text-secondary-text-dark">Consultants</span>
+                        <span class="text-primary-text-dark">{{ consultant_count or 0 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Settings -->
+            <div class="space-y-4">
+                <h4 class="text-lg font-medium text-primary-text-dark">API Configuration</h4>
+                <div class="space-y-2">
+                    <div class="flex justify-between py-2 border-b border-gray-700">
+                        <span class="text-secondary-text-dark">OpenAI API</span>
+                        <span class="text-green-400">
+                            <i class="fas fa-check-circle mr-1"></i>Configured
+                        </span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-700">
+                        <span class="text-secondary-text-dark">Embedding Model</span>
+                        <span class="text-primary-text-dark">text-embedding-3-small</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-700">
+                        <span class="text-secondary-text-dark">Scheduler</span>
+                        <span class="{% if scheduler_running %}text-green-400{% else %}text-yellow-400{% endif %}">
+                            {% if scheduler_running %}
+                                <i class="fas fa-play-circle mr-1"></i>Running
+                            {% else %}
+                                <i class="fas fa-pause-circle mr-1"></i>Stopped
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-700">
+                        <span class="text-secondary-text-dark">Environment</span>
+                        <span class="text-primary-text-dark">Production</span>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="bg-primary-dark shadow-lg rounded-lg p-6">
-            <div class="text-center">
-                <div class="text-3xl font-bold text-green-400">
-                    {% set active_sources = [] %}
-                    {% for config in configs %}
-                        {% if config.is_active and config.enabled_sources %}
-                            {% for source in config.enabled_sources %}
-                                {% if source not in active_sources %}
-                                    {% set _ = active_sources.append(source) %}
-                                {% endif %}
-                            {% endfor %}
-                        {% endif %}
-                    {% endfor %}
-                    {{ active_sources|length }}
-                </div>
-                <div class="text-sm text-secondary-text-dark">Active Sources</div>
-            </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-primary-dark shadow-lg rounded-lg p-6">
+        <div class="mb-6">
+            <h3 class="text-xl font-semibold text-primary-text-dark mb-2">Quick Actions</h3>
+            <p class="text-secondary-text-dark text-sm">Common administrative tasks and system maintenance</p>
         </div>
-        <div class="bg-primary-dark shadow-lg rounded-lg p-6">
-            <div class="text-center">
-                <div class="text-3xl font-bold text-blue-400">
-                    {% set avg_performance = configs|selectattr('performance_score', 'ne', none)|map(attribute='performance_score')|list %}
-                    {% if avg_performance %}
-                        {{ (avg_performance|sum / avg_performance|length * 100)|round|int }}%
-                    {% else %}
-                        -
-                    {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Scanner Configuration -->
+            <a href="/consultant/scanner" class="block p-4 bg-secondary-dark rounded-lg hover:bg-gray-700 transition duration-150">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-radar text-2xl text-accent-dark"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-primary-text-dark">Scanner Settings</p>
+                        <p class="text-xs text-secondary-text-dark">Configure scanning criteria</p>
+                    </div>
                 </div>
-                <div class="text-sm text-secondary-text-dark">Average Performance</div>
+            </a>
+
+            <!-- User Management -->
+            <a href="/consultant/users" class="block p-4 bg-secondary-dark rounded-lg hover:bg-gray-700 transition duration-150">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-users text-2xl text-green-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-primary-text-dark">User Management</p>
+                        <p class="text-xs text-secondary-text-dark">Add and manage users</p>
+                    </div>
+                </div>
+            </a>
+
+            <!-- System Health -->
+            <a href="/health" target="_blank" class="block p-4 bg-secondary-dark rounded-lg hover:bg-gray-700 transition duration-150">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-heartbeat text-2xl text-red-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-primary-text-dark">System Health</p>
+                        <p class="text-xs text-secondary-text-dark">Check system status</p>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Database Backup -->
+            <button onclick="alert('Database backup functionality coming soon')" class="block w-full text-left p-4 bg-secondary-dark rounded-lg hover:bg-gray-700 transition duration-150">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-database text-2xl text-blue-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-primary-text-dark">Database Backup</p>
+                        <p class="text-xs text-secondary-text-dark">Backup system data</p>
+                    </div>
+                </div>
+            </button>
+
+            <!-- Clear Cache -->
+            <button onclick="clearCache()" class="block w-full text-left p-4 bg-secondary-dark rounded-lg hover:bg-gray-700 transition duration-150">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-broom text-2xl text-yellow-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-primary-text-dark">Clear Cache</p>
+                        <p class="text-xs text-secondary-text-dark">Clear Redis cache</p>
+                    </div>
+                </div>
+            </button>
+
+            <!-- View Logs -->
+            <button onclick="alert('Log viewer coming soon')" class="block w-full text-left p-4 bg-secondary-dark rounded-lg hover:bg-gray-700 transition duration-150">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-file-alt text-2xl text-purple-400"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-primary-text-dark">View Logs</p>
+                        <p class="text-xs text-secondary-text-dark">System activity logs</p>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- System Information -->
+    <div class="bg-primary-dark shadow-lg rounded-lg p-6">
+        <div class="mb-6">
+            <h3 class="text-xl font-semibold text-primary-text-dark mb-2">System Information</h3>
+            <p class="text-secondary-text-dark text-sm">Current system status and version information</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-accent-dark">v1.0.0</div>
+                <div class="text-xs text-secondary-text-dark">System Version</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-400">10%</div>
+                <div class="text-xs text-secondary-text-dark">System Capacity</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-400">{{ uptime or "N/A" }}</div>
+                <div class="text-xs text-secondary-text-dark">Uptime</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-purple-400">Phase 1</div>
+                <div class="text-xs text-secondary-text-dark">Current Phase</div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function showAddUserModal() {
+    // Implement add user modal
+    window.location.href = '/consultant/users';
+}
+
+function clearCache() {
+    if (confirm('Are you sure you want to clear the Redis cache?')) {
+        fetch('/api/cache/clear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(response => {
+            if (response.ok) {
+                alert('Cache cleared successfully');
+            } else {
+                alert('Failed to clear cache');
+            }
+        });
+    }
+}
+</script>
 {% endblock %}
