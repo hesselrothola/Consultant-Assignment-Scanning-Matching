@@ -32,7 +32,7 @@ All scanners must read shared criteria from `scanning_configs` + `source_config_
 - **Scheduler (`app/scheduler.py`)** – APScheduler orchestration for daily/weekly scans, weekly reports, Monday briefs, optimisation routines. UI control at `/consultant/scanner`.
 - **Scrapers (`app/scrapers/`)** – Base HTTP and Playwright abstractions plus current implementations for Brainville, Cinode, and Verama. New scrapers must honour shared configuration inputs and emit `JobIn` objects.
 - **Auth (`app/auth.py`, `app/auth_routes.py`)** – JWT-based login with admin/manager/viewer roles, password hashing, refresh tokens, and user management pages.
-- **Web UI (`app/frontend.py`, `app/templates/`)** – HTMX/Tailwind dashboard at `/consultant/…`, including login page, jobs list, consultants management, configuration pages, scanner controls, analytics stubs, company views, and placeholders for recommendations/alerts. All user-facing insights stay inside the web app—no Slack/Teams/email integrations.
+- **Web UI (`app/frontend.py`, `app/templates/`)** – HTMX/Tailwind dashboard at `/consultant/…`, including login page, jobs list, consultants management, scanner controls, reports, and admin/user management pages. All user-facing insights stay inside the web app—no Slack/Teams/email integrations.
 
 ## Scanning & Configuration Expectations
 
@@ -41,11 +41,11 @@ All scanners must read shared criteria from `scanning_configs` + `source_config_
 - Prefer API integrations when possible; Playwright is a fallback and should log screenshots/snapshots for debugging.
 - Keep rate limits and authentication details in `.env` (see `config/scraper_config.yaml` for defaults).
 
-## Matching, Analytics & Operations
+## Matching & Operations
 
-- Matching, analytics, company intelligence, recommendations, and alerting modules are part of the system; design changes should consider their data needs even when implementing scanning tasks.
+- Matching modules are part of the system; design changes should consider their data needs even when implementing scanning tasks.
 - When enriching matching logic, coordinate weight changes, new fields, or schema migrations with actual database structures (no phantom columns).
-- Reporting should evolve to feed in-app dashboards (`/consultant/analytics`, `/consultant/companies`, `/consultant/recommendations`, `/consultant/alerts`) rather than external messaging.
+- Reporting should be available in-app via `/consultant/reports` rather than external messaging.
 - Future adaptive configuration and learning features rely on accurate ingestion logs and performance metrics—keep those endpoints tidy.
 
 ## Key Commands
@@ -74,8 +74,7 @@ Adjust commands as tooling evolves; keep docs consistent with actual scripts.
 - When invoking API endpoints or dashboards, point clients to http://91.98.72.10:<port> rather than localhost on your development machine.
 ## Implementation Notes & TODO Alignment
 
-- Remove reliance on Teams/email notifications from scheduler delivery flows and build equivalent in-app alert panels.
-- Flesh out `/consultant/jobs` filters, analytics dashboards, company tracking, and recommendation/alert views per the updated system spec.
+- Teams/email notifications have been removed from scheduler - reports are now stored for in-app viewing at `/consultant/reports`.
 - Prioritise implementing Verama → Cinode → Keyman pipelines before expanding to other sources, but keep downstream modules in mind when shaping schemas and APIs. Confirm Verama API usage (`https://app.verama.com/api/public/job-requests`) is stable and capture any auth/header requirements for production.
 - Finish Cinode integration (authenticated API/Playwright) and implement Keyman scraper with shared configuration + UI controls.
 - When adding new functionality, update both this file and `docs/AI_Agent_for_Consultant_Assignment_Scanning_and_Matching_UPDATED.md` to stay in sync.
