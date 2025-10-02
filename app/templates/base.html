@@ -115,14 +115,20 @@
                         <a href="/consultant/consultants" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary-dark {% if 'consultants' in request.url.path %}bg-secondary-dark{% endif %}">
                             <i class="fas fa-user-tie mr-2"></i>Consultants
                         </a>
+                        <a href="/consultant/analytics" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary-dark {% if 'analytics' in request.url.path %}bg-secondary-dark{% endif %}">
+                            <i class="fas fa-chart-line mr-2"></i>Analytics
+                        </a>
+                        <a href="/consultant/recommendations" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary-dark {% if 'recommendations' in request.url.path %}bg-secondary-dark{% endif %}">
+                            <i class="fas fa-star mr-2"></i>Matches
+                        </a>
                         <a href="/consultant/scanner" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary-dark {% if 'scanner' in request.url.path %}bg-secondary-dark{% endif %}">
                             <i class="fas fa-radar mr-2"></i>Scanner
                         </a>
+                        <a href="/consultant/alerts" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary-dark {% if 'alerts' in request.url.path %}bg-secondary-dark{% endif %}">
+                            <i class="fas fa-bell mr-2"></i>Alerts
+                        </a>
                         <a href="/consultant/admin" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary-dark {% if 'admin' in request.url.path %}bg-secondary-dark{% endif %}">
                             <i class="fas fa-cog mr-2"></i>Admin
-                        </a>
-                        <a href="/consultant/reports" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary-dark {% if 'reports' in request.url.path %}bg-secondary-dark{% endif %}">
-                            <i class="fas fa-chart-bar mr-2"></i>Reports
                         </a>
                     </nav>
                     <div class="flex items-center space-x-4">

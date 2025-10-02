@@ -1,5 +1,5 @@
 """
-eWork (Verama) job portal scraper.
+Verama job portal scraper.
 Focuses on senior and expert-level consultant assignments.
 """
 
@@ -61,7 +61,7 @@ class VeramaScraper(BaseScraper):
         self.target_locations = [loc.lower() for loc in (target_locations or [])]
         self.location_set = set(self.target_locations)
 
-        # Map country codes to country names used by eWork
+        # Map country codes to country names used by Verama
         self.country_mapping = {
             "SE": "Sverige",
             "NO": "Norge", 
@@ -102,7 +102,7 @@ class VeramaScraper(BaseScraper):
                     url += f"level={level}&"
                 url += f"page={params['page']}&size={params['size']}&sort={params['sort']}"
                 
-                logger.info(f"Fetching eWork page {page}: {url}")
+                logger.info(f"Fetching Verama page {page}: {url}")
                 
                 response = await self.fetch_page(url)
                 
@@ -143,10 +143,10 @@ class VeramaScraper(BaseScraper):
                 # Rate limiting
                 await asyncio.sleep(self.rate_limit_delay)
             
-            logger.info(f"Scraped {len(all_listings)} listings from eWork")
+            logger.info(f"Scraped {len(all_listings)} listings from Verama")
             
         except Exception as e:
-            logger.error(f"Error scraping eWork listings: {e}")
+            logger.error(f"Error scraping Verama listings: {e}")
         
         return all_listings
     
@@ -159,7 +159,7 @@ class VeramaScraper(BaseScraper):
             parsed = {}
             
             # Extract basic info
-            parsed['job_uid'] = f"ework_{job_data.get('id', '')}"
+            parsed['job_uid'] = f"verama_{job_data.get('id', '')}"
             parsed['source'] = self.source_name
             parsed['title'] = job_data.get('title', '')
             parsed['url'] = f"{self.base_url}/job-requests/{job_data.get('id', '')}"
@@ -255,7 +255,7 @@ class VeramaScraper(BaseScraper):
             return parsed if parsed.get('title') else None
             
         except Exception as e:
-            logger.error(f"Error parsing eWork job: {e}")
+            logger.error(f"Error parsing Verama job: {e}")
             logger.error(f"Job data: {job_data}")
             return None
     

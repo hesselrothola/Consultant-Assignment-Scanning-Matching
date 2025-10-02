@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold">System Alerts & Notifications</h1>
+        <button class="px-4 py-2 bg-accent-dark rounded hover:bg-indigo-700">
+            <i class="fas fa-check-double mr-2"></i>Mark All Read
+        </button>
+    </div>
+
+    <!-- Alert Filters -->
+    <div class="bg-primary-dark p-4 rounded-lg flex items-center space-x-4">
+        <label class="text-sm">Filter:</label>
+        <button class="px-3 py-1 bg-accent-dark rounded text-sm">All</button>
+        <button class="px-3 py-1 bg-secondary-dark rounded text-sm hover:bg-accent-dark">Reports</button>
+        <button class="px-3 py-1 bg-secondary-dark rounded text-sm hover:bg-accent-dark">Matches</button>
+        <button class="px-3 py-1 bg-secondary-dark rounded text-sm hover:bg-accent-dark">System</button>
+    </div>
+
+    <!-- Alerts List -->
+    <div class="space-y-3">
+        {% if alerts %}
+            {% for alert in alerts %}
+            <div class="bg-primary-dark p-4 rounded-lg border-l-4
+                {% if alert.type == 'success' %}border-green-500
+                {% elif alert.type == 'warning' %}border-yellow-500
+                {% elif alert.type == 'error' %}border-red-500
+                {% else %}border-blue-500{% endif %}">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <i class="fas fa-{{ alert.icon or 'bell' }}"></i>
+                            <span class="font-semibold">{{ alert.title }}</span>
+                            <span class="text-xs text-secondary-text-dark">{{ alert.created_at }}</span>
+                        </div>
+                        <p class="text-sm text-secondary-text-dark">{{ alert.message }}</p>
+                    </div>
+                    <button class="text-secondary-text-dark hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- Empty State -->
+            <div class="bg-primary-dark p-12 rounded-lg text-center">
+                <i class="fas fa-bell-slash text-6xl text-secondary-dark mb-4"></i>
+                <h3 class="text-xl font-semibold mb-2">No Alerts Yet</h3>
+                <p class="text-secondary-text-dark mb-4">
+                    System alerts and notifications will appear here.
+                </p>
+                <div class="space-y-2 text-sm text-secondary-text-dark">
+                    <p><i class="fas fa-check text-green-400 mr-2"></i>Weekly report summaries</p>
+                    <p><i class="fas fa-check text-green-400 mr-2"></i>Daily scan results</p>
+                    <p><i class="fas fa-check text-green-400 mr-2"></i>High-priority match notifications</p>
+                    <p><i class="fas fa-check text-green-400 mr-2"></i>System status updates</p>
+                </div>
+            </div>
+
+            <!-- Sample Alerts (for demo) -->
+            <div class="bg-primary-dark p-4 rounded-lg border-l-4 border-blue-500">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <i class="fas fa-info-circle text-blue-400"></i>
+                            <span class="font-semibold">Weekly Report Available</span>
+                            <span class="text-xs text-secondary-text-dark">2 hours ago</span>
+                        </div>
+                        <p class="text-sm text-secondary-text-dark">
+                            Your weekly consultant market analysis is ready to view.
+                            Found 45 new jobs this week with 23 high-quality matches.
+                        </p>
+                    </div>
+                    <button class="text-secondary-text-dark hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-primary-dark p-4 rounded-lg border-l-4 border-green-500">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <i class="fas fa-check-circle text-green-400"></i>
+                            <span class="font-semibold">Daily Scan Completed</span>
+                            <span class="text-xs text-secondary-text-dark">5 hours ago</span>
+                        </div>
+                        <p class="text-sm text-secondary-text-dark">
+                            Successfully scanned Verama and found 12 new senior consultant positions.
+                        </p>
+                    </div>
+                    <button class="text-secondary-text-dark hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-primary-dark p-4 rounded-lg border-l-4 border-yellow-500">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <i class="fas fa-star text-yellow-400"></i>
+                            <span class="font-semibold">High Priority Match</span>
+                            <span class="text-xs text-secondary-text-dark">1 day ago</span>
+                        </div>
+                        <p class="text-sm text-secondary-text-dark">
+                            Found excellent match (92% score) for Senior Cloud Architect position in Stockholm.
+                        </p>
+                    </div>
+                    <button class="text-secondary-text-dark hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination (if needed) -->
+    <div class="flex justify-center mt-6">
+        <div class="text-sm text-secondary-text-dark">
+            Showing sample alerts • In-app notifications coming soon
+        </div>
+    </div>
+</div>
+{% endblock %}

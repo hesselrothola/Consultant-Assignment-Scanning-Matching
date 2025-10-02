@@ -222,6 +222,68 @@ async def require_admin(current_user: User = Depends(require_user)) -> User:
     return current_user
 
 
+async def get_current_user_from_cookie(request: Request) -> Optional[Dict[str, Any]]:
+    """Get current user from cookie for HTML frontend routes. Returns dict or redirects to login."""
+    # Try to get token from cookie
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+
+    # Remove "Bearer " prefix if present
+    if token.startswith("Bearer "):
+        token = token[7:]
+
+    # Decode token
+    token_data = decode_token(token)
+    if not token_data:
+        return None
+
+    # Return user data as dict for template rendering
+    return {
+        "username": token_data.username,
+        "user_id": token_data.user_id,
+        "role": token_data.role
+    }
+
+
+def require_auth_cookie(request: Request) -> Dict[str, Any]:
+    """Synchronous function to check auth and redirect if not authenticated."""
+    import asyncio
+
+    # Try to get token from cookie
+    token = request.cookies.get("access_token")
+    if not token:
+        # Redirect to login with next parameter
+        next_url = str(request.url.path)
+        if request.url.query:
+            next_url += f"?{request.url.query}"
+        return RedirectResponse(
+            url=f"/auth/login?next={next_url}",
+            status_code=303
+        )
+
+    # Remove "Bearer " prefix if present
+    if token.startswith("Bearer "):
+        token = token[7:]
+
+    # Decode token
+    token_data = decode_token(token)
+    if not token_data:
+        # Invalid token - redirect to login
+        next_url = str(request.url.path)
+        return RedirectResponse(
+            url=f"/auth/login?next={next_url}",
+            status_code=303
+        )
+
+    # Return user data as dict
+    return {
+        "username": token_data.username,
+        "user_id": token_data.user_id,
+        "role": token_data.role
+    }
+
+
 class AuthMiddleware:
     """Middleware to check authentication for web routes."""
     

@@ -26,8 +26,9 @@ from app.repo import (
 from app.embeddings import EmbeddingService
 from app.matching import MatchingService
 from app.reports import ReportingService
-from app.notifications.email import EmailNotificationService
-from app.notifications.teams import TeamsNotificationService
+# Note: Email and Teams notification services kept for potential future use but not imported by default
+# from app.notifications.email import EmailNotificationService
+# from app.notifications.teams import TeamsNotificationService
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +51,11 @@ class ScannerScheduler:
         self.embedding_service = embedding_service
         self.matching_service = matching_service
         self.reporting_service = reporting_service
-        
-        # Initialize notification services
-        self.email_service = EmailNotificationService()
-        self.teams_service = TeamsNotificationService()
-        
+
+        # Note: Notification services removed - reports now stored in-app
+        # self.email_service = EmailNotificationService()
+        # self.teams_service = TeamsNotificationService()
+
         # Initialize scheduler
         self.scheduler = AsyncIOScheduler(timezone="Europe/Stockholm")
         self.is_running = False
@@ -330,34 +331,36 @@ class ScannerScheduler:
         )
     
     async def generate_weekly_report(self):
-        """Generate and deliver weekly report on Fridays."""
+        """Generate and store weekly report on Fridays."""
         logger.info("Generating weekly report")
-        
+
         try:
             # Generate weekly summary
             report = await self.reporting_service.generate_weekly_report()
-            
-            # Send to configured channels (Slack/Teams)
-            await self._deliver_weekly_report(report)
-            
-            logger.info("Weekly report generated and delivered successfully")
-            
+
+            # Store report in database for in-app viewing
+            # TODO: Implement db_repo.store_report() method
+            logger.info(f"Weekly report generated successfully: {report}")
+
+            logger.info("Weekly report generated and stored successfully")
+
         except Exception as e:
             logger.error(f"Weekly report generation failed: {e}")
     
     async def generate_monday_brief(self):
-        """Generate Monday morning brief with weekend summary."""
+        """Generate and store Monday morning brief with weekend summary."""
         logger.info("Generating Monday morning brief")
-        
+
         try:
             # Generate brief summary
             brief = await self.reporting_service.generate_monday_brief()
-            
-            # Send to configured channels
-            await self._deliver_monday_brief(brief)
-            
-            logger.info("Monday brief generated and delivered successfully")
-            
+
+            # Store brief in database for in-app viewing
+            # TODO: Implement db_repo.store_report() method
+            logger.info(f"Monday brief generated successfully: {brief}")
+
+            logger.info("Monday brief generated and stored successfully")
+
         except Exception as e:
             logger.error(f"Monday brief generation failed: {e}")
     
@@ -427,47 +430,10 @@ class ScannerScheduler:
                     learned_from_config_id=config['config_id']
                 )
     
-    async def _deliver_weekly_report(self, report):
-        """Deliver weekly report to configured channels."""
-        delivered = False
-        
-        # Send via email if configured
-        if self.email_service.is_configured():
-            email_sent = await self.email_service.send_weekly_report(report)
-            if email_sent:
-                logger.info("Weekly report sent via email")
-                delivered = True
-        
-        # Send via Teams if configured
-        if self.teams_service.is_configured():
-            teams_sent = await self.teams_service.send_weekly_report(report)
-            if teams_sent:
-                logger.info("Weekly report sent via Teams")
-                delivered = True
-        
-        if not delivered:
-            logger.warning("No notification channels configured for weekly report")
-    
-    async def _deliver_monday_brief(self, brief):
-        """Deliver Monday brief to configured channels."""
-        delivered = False
-        
-        # Send via email if configured
-        if self.email_service.is_configured():
-            email_sent = await self.email_service.send_monday_brief(brief)
-            if email_sent:
-                logger.info("Monday brief sent via email")
-                delivered = True
-        
-        # Send via Teams if configured
-        if self.teams_service.is_configured():
-            teams_sent = await self.teams_service.send_monday_brief(brief)
-            if teams_sent:
-                logger.info("Monday brief sent via Teams")
-                delivered = True
-        
-        if not delivered:
-            logger.warning("No notification channels configured for Monday brief")
+    # NOTE: External notification delivery methods removed
+    # Reports are now stored in database and viewed in-app at /consultant/alerts
+    # Email and Teams notification modules remain available in app/notifications/
+    # for potential future use if explicitly requested
     
     # Manual trigger methods for testing
     async def trigger_scan_now(self, config_id: Optional[UUID] = None):

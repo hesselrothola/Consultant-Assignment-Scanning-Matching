@@ -12,7 +12,7 @@ from typing import Optional, List
 import os
 from datetime import datetime, timezone
 from uuid import UUID
-# from app.auth import get_current_user, require_user  # Removed to avoid circular imports
+from app.auth import require_auth_cookie
 
 from app.repo import (
     DEFAULT_EXECUTIVE_LANGUAGES,
@@ -66,10 +66,15 @@ def _list_to_text(values: Optional[List[str]], separator: str = "\n") -> str:
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_alt(request: Request):
     """Alternative dashboard route"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "title": "Consultant Matching Dashboard",
-        "user": {"username": "admin", "role": "admin"}
+        "user": user
     })
 
 @router.get("/jobs", response_class=HTMLResponse)
@@ -79,42 +84,60 @@ async def jobs_list(
     limit: int = Query(20, le=100)
 ):
     """View and filter jobs"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     from app.main import db_repo
-    
+
     # Get jobs from database
     jobs = await db_repo.get_jobs(source=source, limit=limit)
-    
+
     return templates.TemplateResponse("jobs.html", {
         "request": request,
         "jobs": jobs,
         "source": source,
-        "limit": limit
+        "limit": limit,
+        "user": user
     })
 
-@router.get("/consultants", response_class=HTMLResponse) 
+@router.get("/consultants", response_class=HTMLResponse)
 async def consultants_list(
     request: Request,
     active: Optional[bool] = True,
     limit: int = Query(20, le=100)
 ):
     """View and manage consultants"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     from app.main import db_repo
-    
+
     consultants = await db_repo.get_consultants(active_only=active, limit=limit)
-    
+
     return templates.TemplateResponse("consultants.html", {
         "request": request,
         "consultants": consultants,
         "active": active,
-        "limit": limit
+        "limit": limit,
+        "user": user
     })
 
 @router.get("/consultants/add", response_class=HTMLResponse)
 async def consultant_add_form(request: Request):
     """Form to add new consultant"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     return templates.TemplateResponse("consultant_form.html", {
         "request": request,
-        "action": "add"
+        "action": "add",
+        "user": user
     })
 
 @router.post("/consultants/add", response_class=HTMLResponse)
@@ -132,6 +155,11 @@ async def consultant_add(
     notes: Optional[str] = Form(None)
 ):
     """Add new consultant"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     from app.main import db_repo, embedding_service
     from app.models import ConsultantIn
     
@@ -176,6 +204,11 @@ async def consultant_add(
 @router.get("/admin", response_class=HTMLResponse)
 async def admin_view(request: Request):
     """System settings and administration"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     from app.main import db_repo, scanner_scheduler
 
     # Get system statistics using existing methods
@@ -204,7 +237,8 @@ async def admin_view(request: Request):
         "consultant_count": consultant_count,
         "user_count": user_count,
         "scheduler_running": scheduler_running,
-        "uptime": "N/A"  # Can be calculated from app start time if tracked
+        "uptime": "N/A",  # Can be calculated from app start time if tracked
+        "user": user
     })
 
 # Removed old config details route - scanning configs are now managed in scanner page
@@ -212,6 +246,11 @@ async def admin_view(request: Request):
 @router.get("/scanner", response_class=HTMLResponse)
 async def scanner_control(request: Request):
     """Scanner control panel"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     from app.main import scanner_scheduler
 
     # Get scheduler status
@@ -273,7 +312,8 @@ async def scanner_control(request: Request):
         "manual_overrides": manual_overrides,
         "verama_override": verama_override,
         "override_params": override_params,
-        "consultant_summary": consultant_summary
+        "consultant_summary": consultant_summary,
+        "user": user
     })
 
 
@@ -292,6 +332,11 @@ async def update_manual_scanner_config(
     levels: str = Form("")
 ):
     """Update manual scanning criteria used by the Verama scraper."""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     from app.main import db_repo
 
     roles_list = _split_to_list(target_roles)
@@ -357,6 +402,11 @@ async def trigger_scan(
     config_id: Optional[UUID] = Form(None)
 ):
     """Trigger manual scan"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     from app.main import scanner_scheduler
     
     background_tasks.add_task(scanner_scheduler.trigger_scan_now, config_id)
@@ -382,19 +432,25 @@ async def matches_view(
     min_score: float = Query(0.6, ge=0, le=1)
 ):
     """View matching results"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     from app.main import db_repo
-    
+
     matches = []
     if job_id:
         matches = await db_repo.get_matches_for_job(job_id, min_score)
     # Could add get_matches_for_consultant if needed
-    
+
     return templates.TemplateResponse("matches.html", {
         "request": request,
         "matches": matches,
         "job_id": job_id,
         "consultant_id": consultant_id,
-        "min_score": min_score
+        "min_score": min_score,
+        "user": user
     })
 
 @router.post("/matches/generate/{job_id}", response_class=HTMLResponse)
@@ -404,6 +460,11 @@ async def generate_matches(
     job_id: UUID
 ):
     """Generate matches for a specific job"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     from app.main import db_repo, matching_service
     
     async def run_matching():
@@ -434,27 +495,117 @@ async def generate_matches(
 @router.get("/reports", response_class=HTMLResponse)
 async def reports_view(request: Request):
     """View generated reports"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
     from app.main import reporting_service
-    
+
     # Get latest reports
     daily_report = await reporting_service.generate_daily_report()
     weekly_report = await reporting_service.generate_weekly_report()
-    
+
     return templates.TemplateResponse("reports.html", {
         "request": request,
         "daily_report": daily_report,
         "weekly_report": weekly_report,
-        "generated_at": datetime.now(timezone.utc).isoformat()
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "user": user
+    })
+
+@router.get("/analytics", response_class=HTMLResponse)
+async def analytics_view(request: Request):
+    """Analytics dashboard with trends and insights"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    from app.main import db_repo, reporting_service
+
+    # Get weekly report for charts/metrics
+    weekly_report = await reporting_service.generate_weekly_report()
+
+    # Get source performance stats
+    sources_summary = {
+        "verama": {"jobs": 0, "matches": 0},
+        "cinode": {"jobs": 0, "matches": 0},
+        "brainville": {"jobs": 0, "matches": 0}
+    }
+
+    return templates.TemplateResponse("analytics.html", {
+        "request": request,
+        "weekly_report": weekly_report,
+        "sources_summary": sources_summary,
+        "user": user
+    })
+
+@router.get("/alerts", response_class=HTMLResponse)
+async def alerts_view(request: Request):
+    """System alerts and notifications"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    from app.main import db_repo
+
+    # Placeholder for stored reports/alerts
+    alerts = []
+
+    return templates.TemplateResponse("alerts.html", {
+        "request": request,
+        "alerts": alerts,
+        "user": user
+    })
+
+@router.get("/recommendations", response_class=HTMLResponse)
+async def recommendations_view(request: Request):
+    """High-priority match recommendations"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    from app.main import db_repo
+
+    # Get high-quality matches (score > 0.8)
+    high_priority_matches = []
+
+    return templates.TemplateResponse("recommendations.html", {
+        "request": request,
+        "recommendations": high_priority_matches,
+        "user": user
+    })
+
+@router.get("/companies", response_class=HTMLResponse)
+async def companies_view(request: Request):
+    """Company intelligence tracking (Phase 3 stub)"""
+    # Check authentication
+    user = require_auth_cookie(request)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    from app.main import db_repo
+
+    # Placeholder for company tracking
+    companies = []
+
+    return templates.TemplateResponse("companies.html", {
+        "request": request,
+        "companies": companies,
+        "user": user
     })
 
 @router.get("/users", response_class=HTMLResponse)
 async def users_management(request: Request):
     """User management page (admin only)"""
     # Check authentication
-    auth_result = require_auth(request)
+    auth_result = require_auth_cookie(request)
     if isinstance(auth_result, RedirectResponse):
         return auth_result
-    
+
     # Check if user is admin
     if auth_result.get('role') != 'admin':
         return HTMLResponse(
@@ -485,10 +636,10 @@ async def add_user(
 ):
     """Add new user (admin only)"""
     # Check authentication
-    auth_result = require_auth(request)
+    auth_result = require_auth_cookie(request)
     if isinstance(auth_result, RedirectResponse):
         return auth_result
-    
+
     # Check if user is admin
     if auth_result.get('role') != 'admin':
         return HTMLResponse(content="<h1>403 Forbidden</h1>", status_code=403)
@@ -524,10 +675,10 @@ async def reset_user_password(
 ):
     """Reset user password (admin only)"""
     # Check authentication
-    auth_result = require_auth(request)
+    auth_result = require_auth_cookie(request)
     if isinstance(auth_result, RedirectResponse):
         return auth_result
-    
+
     # Check if user is admin
     if auth_result.get('role') != 'admin':
         return HTMLResponse(content="<h1>403 Forbidden</h1>", status_code=403)
@@ -555,10 +706,10 @@ async def reset_user_password(
 async def toggle_user_active(request: Request, user_id: UUID):
     """Toggle user active status (admin only)"""
     # Check authentication
-    auth_result = require_auth(request)
+    auth_result = require_auth_cookie(request)
     if isinstance(auth_result, RedirectResponse):
         return auth_result
-    
+
     # Check if user is admin
     if auth_result.get('role') != 'admin':
         return HTMLResponse(content="<h1>403 Forbidden</h1>", status_code=403)
@@ -586,10 +737,10 @@ async def toggle_user_active(request: Request, user_id: UUID):
 async def edit_user_form(request: Request, user_id: UUID):
     """Get edit user form (admin only)"""
     # Check authentication
-    auth_result = require_auth(request)
+    auth_result = require_auth_cookie(request)
     if isinstance(auth_result, RedirectResponse):
         return auth_result
-    
+
     # Check if user is admin
     if auth_result.get('role') != 'admin':
         return HTMLResponse(content="<h1>403 Forbidden</h1>", status_code=403)
@@ -638,10 +789,10 @@ async def update_user(
 ):
     """Update user details (admin only)"""
     # Check authentication
-    auth_result = require_auth(request)
+    auth_result = require_auth_cookie(request)
     if isinstance(auth_result, RedirectResponse):
         return auth_result
-    
+
     # Check if user is admin
     if auth_result.get('role') != 'admin':
         return HTMLResponse(content="<h1>403 Forbidden</h1>", status_code=403)
